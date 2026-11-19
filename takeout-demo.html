@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>您的外卖齐了 · 午高峰</title>
+<style>
+:root{--ink:#183d34;--muted:#5e7066;--line:#c7cebc;--paper:#fffdf1;--orange:#bb4522;--sans:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;--mono:"SFMono-Regular",Consolas,monospace;--emoji:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+*{box-sizing:border-box}body{margin:0;color:var(--ink);font-family:var(--sans);background-color:#f3efdd;background-image:radial-gradient(#bfbba455 .7px,transparent .8px);background-size:5px 5px}button{font:inherit;cursor:pointer;color:inherit;-webkit-tap-highlight-color:transparent}button:focus-visible{outline:3px solid #4293dd;outline-offset:2px}button:disabled{cursor:default}button:hover:enabled{filter:brightness(1.045)}header{background:#173e32;color:#fbf6d9;border-bottom:4px solid #e8b452} .head{max-width:1140px;margin:auto;height:55px;display:flex;align-items:center;justify-content:space-between;padding:0 24px}.brand{font-size:17px;font-weight:900;letter-spacing:2px;display:flex;align-items:center;gap:11px}.brandmark{width:26px;height:22px;background:#f2bc55;border-radius:4px 4px 8px 8px;position:relative}.brandmark:before{content:"";position:absolute;width:11px;height:6px;border:2px solid #f2bc55;border-radius:5px 5px 0 0;left:5px;top:-6px}.brandmark:after{content:"";position:absolute;background:#173e32;top:7px;left:6px;width:14px;height:3px;box-shadow:0 5px 0 -1px #173e32}.head button{background:none;border:1px solid #a3b39c88;color:#fff7df;padding:5px 12px;border-radius:30px;font-size:13px}.wrap{max-width:1140px;margin:auto;padding:26px 24px 22px}.intro{display:flex;align-items:end;justify-content:space-between;margin-bottom:20px;gap:10px}.eyebrow{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:1.1px}.heat{color:#fff6db;background:var(--orange);padding:3px 8px;border-radius:3px}.title{font-size:clamp(31px,4.3vw,54px);font-weight:950;letter-spacing:-3px;line-height:1.15;margin:7px 0 0}.progress{text-align:right;min-width:120px}.progress small{font-size:12px;font-weight:700}.count{font:700 30px var(--mono);margin-left:8px}.count i{font:normal 15px var(--mono);color:var(--muted)}.meter{background:#dadac3;height:5px;margin-top:6px;border-radius:5px;overflow:hidden}.meter span{display:block;height:100%;background:#cc5a29;transition:width .25s}.layout{display:grid;grid-template-columns:minmax(0,1fr) 289px;gap:18px;align-items:start}.left,.side{min-width:0}.rack{border-radius:17px;border:2px solid #204a3d;background:#346449;box-shadow:inset 0 0 0 4px #75906e,0 4px 0 #294a37;padding:15px 17px 10px}.rail,.baskethead,.sidehead,.tickethead,.tools,.slotline{display:flex;align-items:center;justify-content:space-between;gap:8px}.rail{color:#fff5cd;margin:0 3px 10px}.rail strong{font-size:17px;letter-spacing:2px}.rail small{font:600 11px var(--mono);letter-spacing:1px;color:#e6e8c8}.bed{background:repeating-linear-gradient(90deg,#2c503b 0 5px,#2e543e 5px 9px);border-radius:8px;box-shadow:inset 0 2px 6px #142c24aa;padding:14px 12px 19px}.board{position:relative;aspect-ratio:7/4;container-type:inline-size;isolation:isolate}.tile{position:absolute;display:grid;place-items:center;width:13.43%;height:23.5%;padding:0;border:0;background:transparent;appearance:none;user-select:none;touch-action:manipulation}.tile .food{font:normal 11.7cqw/1 var(--emoji);filter:drop-shadow(0 2px 1px #102e22a6);pointer-events:none}.tile.covered{filter:brightness(.66) saturate(.65);pointer-events:none}.tile.unfit{filter:brightness(.60) saturate(.5)}.tile:enabled:hover .food{transform:scale(1.04)}.tile:enabled:active .food{transform:scale(.95)}.tile.guide .food,.tile:focus-visible .food{filter:drop-shadow(1px 0 0 #fff3bc) drop-shadow(-1px 0 0 #fff3bc) drop-shadow(0 0 3px #ffaf18) drop-shadow(0 0 4px #ffad13)}.tile:focus-visible{outline:0}.lip{height:11px;display:flex;align-items:end;justify-content:center;gap:4px}.lip:before,.lip:after{content:"";width:25px;height:3px;border-radius:5px;background:#a3b28a}.basket{margin-top:14px;border:1px solid #b3bea6;background:#e7ead6;border-radius:12px;padding:11px 16px;display:flex;gap:17px;align-items:center;min-height:77px}.basketcopy{flex:1}.baskethead{justify-content:start}.basket strong,.sidehead strong{font-size:18px;font-weight:900}.basket small,.sidehead small{color:var(--muted);font-size:11px}.basket p{font-size:12px;margin:4px 0 0;color:var(--muted)}.slots{display:flex;gap:5px}.slot{border:1px dashed #98aa8e;border-radius:7px;width:49px;height:48px;display:grid;place-content:center;text-align:center;font:16px var(--mono);color:#a2b19a;background:#f1f3e5}.slot.full{background:#fff9e5;border:1px solid #beb993;color:var(--ink)}.slot b{font:23px/1.05 var(--emoji)}.slot small{font:700 10px var(--sans)}.side{padding:14px 13px 11px;border:1px solid #c7c5aa;border-radius:13px;background:#e9e3ca}.sidehead{margin:0 3px 13px}.tickets{display:grid;gap:12px}.ticket{position:relative;padding:12px 15px 15px;background:var(--paper);border-top:4px solid #d46636;filter:drop-shadow(0 2px 1px #655d391e);clip-path:polygon(0 0,100% 0,100% 97%,97% 100%,94% 97%,91% 100%,88% 97%,85% 100%,82% 97%,79% 100%,76% 97%,73% 100%,70% 97%,67% 100%,64% 97%,61% 100%,58% 97%,55% 100%,52% 97%,49% 100%,46% 97%,43% 100%,40% 97%,37% 100%,34% 97%,31% 100%,28% 97%,25% 100%,22% 97%,19% 100%,16% 97%,13% 100%,10% 97%,7% 100%,4% 97%,0 100%)}.ticket:nth-child(2){border-color:#739470}.tickethead{border-bottom:1px dashed #c9cbb8;padding-bottom:6px;margin-bottom:6px}.tickethead b{font:900 18px var(--mono)}.tickethead small{font:12px var(--mono);color:var(--muted)}.item{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:700;height:30px}.item em,.preview span{font:normal 21px var(--emoji)}.item i{width:14px;height:14px;border:1px solid #aab6a0;margin-left:auto;border-radius:3px;font:700 11px/13px var(--sans);text-align:center}.item.packed{color:#748675}.item.packed i{background:#4e7356;border-color:#4e7356;color:white}.item.packed .itemname{text-decoration:line-through}.preview{border-top:1px dashed #b7b8a1;margin:12px 3px 0;padding-top:10px;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700}.preview b{margin-right:auto}.tools{margin-top:13px;min-height:32px}.actions{display:flex;gap:7px}.plain,.modalbtn{padding:7px 12px;border:1px solid #aeb8a1;background:#fbf8e7;border-radius:6px;font-size:12px;font-weight:700}.plain:disabled{opacity:.45}#notice{font-size:12px;color:#9b431d;font-weight:700}.overlay{position:fixed;inset:0;background:#13291fc4;display:grid;place-items:center;padding:18px;z-index:200}.overlay[hidden]{display:none}.modal{width:min(365px,100%);background:#fff9e7;border:2px solid var(--ink);border-radius:16px;box-shadow:5px 6px 0 #13291f;padding:25px}.modal h2{margin:0 0 12px;font-size:25px}.modal p{white-space:pre-line;line-height:1.75;font-size:14px;margin:0 0 18px}.modalbuttons{display:flex;flex-wrap:wrap;gap:7px}.modalbtn:first-child{background:var(--ink);color:#fff9e1}.fly{position:fixed;z-index:90;pointer-events:none;font:32px var(--emoji)}.stamp{animation:stamp .32s ease-out}@keyframes stamp{from{transform:scale(.97);background:#fff0b3}to{transform:none}}@media(min-width:1250px){.wrap{padding-top:34px}}
+@media(max-width:800px){.layout{grid-template-columns:minmax(0,1fr) 218px;gap:12px}.wrap{padding:20px 14px}.rack{padding:12px 10px 8px}.bed{padding:10px 7px 14px}.side{padding:10px}.slot{width:38px;height:42px}.basket{padding:9px;gap:5px}.head{padding:0 15px}}
+@media(max-width:640px){.head{height:42px}.brand{font-size:14px}.brandmark{transform:scale(.79)}.wrap{padding:13px 9px 15px}.intro{margin-bottom:10px}.title{font-size:30px;letter-spacing:-1.5px;margin-top:3px}.eyebrow{font-size:10px}.count{font-size:22px}.progress{min-width:92px}.layout,.left,.side{display:contents}.wrap{display:flex;flex-direction:column}.intro{order:0}.sidehead{display:none}.tickets{order:1;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px}.ticket{padding:5px 8px 9px;border-top-width:3px;background:#fffcf0}.tickethead{padding-bottom:3px;margin-bottom:2px}.tickethead b{font-size:14px}.tickethead small{font-size:10px}.items{display:flex;justify-content:space-around}.item{flex-direction:column;gap:0;height:auto;position:relative}.item em{font-size:21px}.item .itemname{font-size:10px}.item i{display:none}.item.packed:after{content:"✓";position:absolute;right:-5px;top:-2px;background:#416b4d;border-radius:50%;padding:0 2px;font-size:9px;color:white}.rack{order:2;padding:9px 7px 6px;border-radius:13px}.rail{margin:0 3px 5px}.rail strong{font-size:14px}.rail small{font-size:9px}.bed{padding:7px 4px 10px}.lip{height:6px}.basket{order:3;margin-top:10px;padding:8px 11px;min-height:63px}.basket strong{font-size:16px}.basket p{font-size:11px}.slot{width:38px;height:39px}.preview{order:4;padding:7px 3px 0;margin:8px 2px 0;justify-content:start}.preview b{margin-right:4px}.preview span{font-size:17px}.tools{order:5;margin-top:8px}.plain{padding:6px 10px}.board{aspect-ratio:7/4.7}.tile .food{font-size:12.5cqw}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style></head><body>
+<header><div class="head"><div class="brand"><i class="brandmark" aria-hidden="true"></i>巷口外卖社</div><button id="help">？ 玩法</button></div></header>
+<main class="wrap"><section class="intro"><div><div class="eyebrow"><span class="heat">地狱难度</span><span>午高峰 · 终极关</span></div><h1 class="title">您的外卖齐了！</h1></div><div class="progress"><small>已出单</small><span class="count" id="count"></span><div class="meter"><span id="bar"></span></div></div></section>
+<div class="layout"><section class="left"><div class="rack"><div class="rail"><strong>取餐架</strong><small id="remaining"></small></div><div class="bed"><div class="board" id="board" aria-label="堆叠取餐架"></div></div><div class="lip"></div></div>
+<div class="basket"><div class="basketcopy"><div class="baskethead"><strong>临时车筐</strong><small id="capacity"></small></div><p id="tip"></p></div><div class="slots" id="slots"></div></div>
+<div class="tools"><div class="actions"><button class="plain" id="undo">↶ 撤回</button><button class="plain" id="restart">重开</button><button class="plain" hidden id="endguide">退出跟走</button></div><span role="status" id="notice"></span></div></section>
+<aside class="side"><div class="sidehead"><strong>待配小票</strong><small>按单装袋</small></div><div class="tickets" id="tickets"></div><div class="preview" id="preview"></div></aside></div></main>
+<div class="overlay" id="overlay" hidden><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><h2 id="modalTitle"></h2><p id="modalText"></p><div class="modalbuttons" id="modalbuttons"></div></section></div>
+<script>
+const LEVEL={"foods":[["🍔","汉堡","red"],["🍟","薯条","yellow"],["🥤","可乐","red"],["🍕","披萨","red"],["🌭","热狗","yellow"],["🥪","三明治","green"],["🌮","塔可","yellow"],["🌯","卷饼","green"],["🥗","沙拉","green"],["🍝","意面","red"],["🍜","拉面","red"],["🍛","咖喱饭","yellow"],["🍣","寿司","green"],["🍙","饭团","green"],["🥟","饺子","yellow"],["🍤","炸虾","red"],["🥐","可颂","yellow"],["🧇","华夫饼","yellow"],["🍩","甜甜圈","pink"],["🍰","蛋糕","pink"],["🧋","奶茶","pink"],["🧃","果汁","green"],["☕","咖啡","yellow"],["🍦","冰淇淋","pink"]],"orders":[[0,1,2],[10,15,20],[16,17,22],[12,13,21],[3,8,2],[6,7,21],[14,14,20],[9,8,19],[4,1,2],[11,15,21],[5,18,22],[12,15,13],[0,18,20],[7,6,2],[10,14,23],[3,4,21],[16,19,22],[9,8,20],[11,13,23],[5,17,18]],"tiles":[[0,0,0,15],[1,0,0,5],[2,0,0,10],[3,0,0,22],[4,0,0,23],[5,0,0,8],[6,0,0,14],[0,1,0,13],[1,1,0,19],[2,1,0,11],[3,1,0,18],[4,1,0,7],[5,1,0,12],[6,1,0,20],[0,2,0,23],[1,2,0,13],[2,2,0,21],[3,2,0,3],[4,2,0,16],[5,2,0,14],[6,2,0,2],[0,3,0,17],[1,3,0,9],[2,3,0,6],[3,3,0,19],[4,3,0,22],[5,3,0,2],[6,3,0,8],[0.5,0.5,1,18],[1.5,0.5,1,5],[2.5,0.5,1,13],[3.5,0.5,1,18],[4.5,0.5,1,11],[5.5,0.5,1,12],[0.5,1.5,1,20],[1.5,1.5,1,20],[2.5,1.5,1,20],[3.5,1.5,1,0],[4.5,1.5,1,21],[5.5,1.5,1,10],[0.5,2.5,1,15],[1.5,2.5,1,2],[2.5,2.5,1,2],[3.5,2.5,1,9],[4.5,2.5,1,14],[5.5,2.5,1,21],[1,1,2,1],[2,1,2,8],[4,1,2,4],[5,1,2,7],[1,2,2,4],[2,2,2,3],[4,2,2,6],[5,2,2,21],[0,1,2,1],[6,1,2,22],[0.5,1.5,3,15],[1.5,1.5,3,0],[4.5,1.5,3,17],[5.5,1.5,3,16]],"solution":[57,56,51,42,47,36,54,59,30,55,58,49,53,39,33,45,13,27,6,20,52,46,44,26,48,37,31,10,32,43,24,28,0,3,38,12,29,50,41,34,17,11,7,23,19,40,4,35,15,2,8,16,18,5,25,1,22,21,14,9]};
+const {foods,orders,tiles,solution}=LEVEL;
+const cover=tiles.map(([x,y,z])=>tiles.flatMap(([xx,yy,zz],i)=>zz>z && Math.abs(x-xx)<.94 && Math.abs(y-yy)<.94 ? [i] : []));
+function startGame(){
+  return {taken:Array(tiles.length).fill(false),need:orders.map(o=>o.slice()),open:[0,1],next:2,basket:[],done:0,steps:0};
+}
+function exposed(s,i){return !s.taken[i] && cover[i].every(j=>s.taken[j]);}
+function wants(s,f){return s.open.some(i=>s.need[i].includes(f));}
+function playable(s,i){return exposed(s,i) && (s.basket.length<3 || wants(s,tiles[i][3]));}
+function pack(s,f){
+  for(const i of s.open){
+    const k=s.need[i].indexOf(f);
+    if(k>=0){s.need[i].splice(k,1);return true;}
+  }
+  return false;
+}
+function take(s,i){
+  if(!playable(s,i))return false;
+  s.taken[i]=true;s.steps++;
+  const food=tiles[i][3];
+  if(!pack(s,food))s.basket.push(food);
+  while(s.open.some(o=>s.need[o].length===0)){
+    const closed=s.open.filter(o=>s.need[o].length===0);
+    s.done+=closed.length;
+    s.open=s.open.filter(o=>s.need[o].length>0);
+    for(const _ of closed)if(s.next<orders.length)s.open.push(s.next++);
+    s.basket=s.basket.filter(f=>!pack(s,f));
+  }
+  return true;
+}
+function stalled(s){return s.done<orders.length && !tiles.some((_,i)=>playable(s,i));}
+
+const $=id=>document.getElementById(id);
+let state=startGame(),history=[],guided=false,restoreFocus=null;
+const fmt=n=>String(n).padStart(2,'0');
+function dialog(title,body,buttons){
+  if($('overlay').hidden)restoreFocus=document.activeElement;
+  $('modalTitle').textContent=title;$('modalText').textContent=body;
+  const group=$('modalbuttons');group.replaceChildren();
+  for(const [label,fn] of buttons){
+    const b=document.createElement('button');b.className='modalbtn';b.textContent=label;
+    b.onclick=()=>{closeDialog();fn();};group.append(b);
+  }
+  $('overlay').hidden=false;document.querySelector('main').inert=true;document.querySelector('header').inert=true;group.firstChild.focus();
+}
+function closeDialog(){
+  $('overlay').hidden=true;document.querySelector('main').inert=false;document.querySelector('header').inert=false;
+  if(restoreFocus?.isConnected)restoreFocus.focus({preventScroll:true});
+}
+$('overlay').addEventListener('keydown',e=>{
+  if(e.key==='Tab'){
+    const bs=[...$('modalbuttons').children],idx=bs.indexOf(document.activeElement);
+    e.preventDefault();bs[(idx+(e.shiftKey?-1:1)+bs.length)%bs.length].focus();
+  }
+});
+function card(i){
+  const [x,y,z,f]=tiles[i],[emoji,name]=foods[f],b=document.createElement('button');
+  b.className='tile';b.id='tile'+i;b.style.left=(x+.03)/7*100+'%';b.style.top=(y+.03)/4*100+'%';b.style.zIndex=z+1;
+  b.setAttribute('aria-label',name+'，第'+(z+1)+'层');b.innerHTML='<span class="food">'+emoji+'</span>';
+  b.onclick=()=>pick(i);return b;
+}
+const cards=tiles.map((_,i)=>card(i));$('board').append(...cards);
+function draw(){
+  cards.forEach((b,i)=>{
+    const free=exposed(state,i),ok=playable(state,i);
+    b.style.display=state.taken[i]?'none':'';b.classList.toggle('covered',!free);
+    b.classList.toggle('unfit',free&&!ok);b.disabled=!ok;
+    b.classList.toggle('guide',guided&&solution[state.steps]===i);
+  });
+  $('count').innerHTML=fmt(state.done)+'<i> / '+orders.length+'</i>';$('bar').style.width=(100*state.done/orders.length)+'%';
+  $('remaining').textContent='架上 '+fmt(tiles.length-state.steps)+' / '+tiles.length+' 份';
+  $('capacity').textContent=state.basket.length+' / 3';
+  if(state.basket.length===3){
+    const direct=new Set(tiles.filter((_,i)=>playable(state,i)).map(t=>foods[t[3]][1]));
+    $('tip').textContent=direct.size?'可直接装袋：'+[...direct].join('、'):'当前露出的食物都不配单，可撤回。';
+  }else{
+    $('tip').textContent='小票用不上的食物先放这里。';
+  }
+  $('slots').innerHTML=Array.from({length:3},(_,j)=>{
+    const f=state.basket[j];return f===undefined?'<div class="slot">+</div>':'<div class="slot full"><b>'+foods[f][0]+'</b><small>'+foods[f][1]+'</small></div>';
+  }).join('');
+  $('tickets').innerHTML=state.open.map(o=>{
+    const packed=orders[o].slice();for(const f of state.need[o])packed.splice(packed.indexOf(f),1);
+    const rows=orders[o].map(f=>{const j=packed.indexOf(f),ok=j>=0;if(ok)packed.splice(j,1);
+      return '<div class="item '+(ok?'packed':'')+'"><em>'+foods[f][0]+'</em><span class="itemname">'+foods[f][1]+'</span><i aria-label="'+(ok?'已装袋':'待装袋')+'">'+(ok?'✓':'')+'</i></div>';
+    }).join('');
+    return '<article class="ticket"><div class="tickethead"><b>#'+String(101+o)+'</b><small>已配 '+(3-state.need[o].length)+'/3</small></div><div class="items">'+rows+'</div></article>';
+  }).join('');
+  const next=orders[state.next];
+  $('preview').innerHTML=next?'<b>下一张 #'+(101+state.next)+'</b>'+next.map(f=>'<span title="'+foods[f][1]+'" aria-label="'+foods[f][1]+'">'+foods[f][0]+'</span>').join(''):'<b>小票已全部上墙</b>';
+  $('undo').disabled=!history.length;$('endguide').hidden=!guided;
+}
+function fly(emoji,from,target){
+  if(!target||matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  const el=document.createElement('span');el.className='fly';el.textContent=emoji;
+  const x=from.x+from.width/2-16,y=from.y+from.height/2-16;
+  el.style.left=x+'px';el.style.top=y+'px';document.body.append(el);
+  const motion=el.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:'translate('+(target.x+target.width/2-16-x)+'px,'+(target.y+target.height/2-16-y)+'px) scale(.55)',opacity:.15}],{duration:260,easing:'ease-in'});
+  motion.onfinish=()=>el.remove();
+}
+function pick(i){
+  if(!$('overlay').hidden || !playable(state,i))return;
+  if(guided && solution[state.steps]!==i)guided=false;
+  const f=tiles[i][3],toOrder=state.open.findIndex(o=>state.need[o].includes(f)),r=cards[i].getBoundingClientRect();
+  const order=state.open[toOrder];
+  const target=toOrder<0?$('slots'):$('tickets').children[toOrder];
+  const destination=target.getBoundingClientRect();
+  history.push(JSON.stringify(state));const oldDone=state.done;take(state,i);draw();
+  const ds=state.done-oldDone;
+  fly(foods[f][0],r,destination);
+  if(ds){$('tickets').classList.remove('stamp');void $('tickets').offsetWidth;$('tickets').classList.add('stamp');}
+  $('notice').textContent=guided?'点发光的食物 · '+state.steps+'/60':ds?(ds>1?'连出 '+ds+' 单！':'叮！一单配齐。'):toOrder<0?'已暂存'+foods[f][1]:foods[f][1]+'已装入 #'+(101+order);
+  if(state.done===orders.length){
+    dialog('收工，全部出餐！','20 张小票全部配齐，60 份食物清台。'+(guided?'你已走完这关的一条完整解法。':'这一轮午高峰，被你拿下了。'),[['再来一局',()=>reset(false)],['看看清台',()=>{}]]);
+  }else if(stalled(state)){
+    dialog('暂时没有能配单的食物',(toOrder<0?foods[f][1]+'已暂存。':foods[f][1]+'已装入 #'+(101+order)+'。')+'剩下露出的食物都不配单，车筐也没有空位，可以撤回重选。',[['撤回一步',undo],['重新挑战',()=>reset(false)],['从头跟走',()=>reset(true)]]);
+  }
+}
+function undo(){
+  if(!history.length)return;
+  state=JSON.parse(history.pop());draw();$('notice').textContent=guided?'点发光的食物':'已撤回一步';
+}
+function reset(guide){state=startGame();history=[];guided=guide;draw();$('notice').textContent=guide?'点发光的食物 · 0/60':'点亮着的食物取餐';}
+$('undo').onclick=undo;
+$('restart').onclick=()=>dialog('重新上架？','本局进度将重置，食物和小票顺序保持相同。',[['继续玩',()=>{}],['确认重开',()=>reset(false)]]);
+$('help').onclick=()=>dialog('怎么取餐？','① 点没有被压住的食物，有需求的小票会自动装袋。同款优先配给较早的小票。\n② 两张小票同时配餐。多余的食物放进三格车筐，新单会自动取用。\n③ 筐满后仍可直接装袋。配齐 20 单就能清台，卡住时可以连续撤回。',[['知道了',()=>{}],['从头跟走解法',()=>dialog('从头跟走解法？','这会重置本局。每一步会标出一份可取的食物，跟着发光的食物能配完全部小票。点其他可取食物会退出跟走。',[['开始跟走',()=>reset(true)],['返回游戏',()=>{}]])]]);
+$('endguide').onclick=()=>{guided=false;draw();$('notice').textContent='已退出跟走';};
+reset(false);
+
+</script></body></html>
