@@ -1,0 +1,14 @@
+.anqing-watermark {
+  position: absolute; z-index: 27; left: 16%; top: 88%; transform: translate(-50%, -50%);
+  padding: 3px 8px; border-radius: 6px; color: #fff9ec; background: #342619bf;
+  font: 700 clamp(9px, 1.05vw, 13px)/1.4 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  letter-spacing: .05em; white-space: nowrap; pointer-events: none; user-select: none;
+  animation: anqing-watermark-drift 24s ease-in-out infinite;
+}
+@keyframes anqing-watermark-drift {
+  0%, 12%, 100% { left: 16%; }
+  43%, 57% { left: 84%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .anqing-watermark { animation: none; }
+}

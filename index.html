@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#11121b" />
 <meta name="description" content="安青的十个游戏项目，提供苔岸小住、两款类抓大鹅游戏及神仙也要吃早饭的网页试玩。" />
 <title>安青的 AI 游戏作品集 · ANQING / PLAYGROUND</title>
+<link rel="stylesheet" href="greenhouse/watermark.css">
 <style>
 :root{--ink:#191a22;--muted:#6f6b77;--paper:#f6f3ed;--line:#dad6d1;--violet:#b7a4f8;--lime:#c6ed9b;--coral:#ffc2ab;--yellow:#ffe3a2;--font:Inter,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;--serif:"Iowan Old Style","Songti SC","Noto Serif SC",Georgia,serif}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:var(--font);color:var(--ink);background:var(--paper);overflow-x:hidden}button,a{font:inherit}a{color:inherit;text-decoration:none}button{cursor:pointer}button:focus-visible,a:focus-visible{outline:3px solid #8467e8;outline-offset:4px}img{max-width:100%;display:block}::selection{background:var(--violet);color:#12121a}
@@ -35,14 +36,14 @@
   font-weight: 800;
   letter-spacing: .1em;
 }
-.hero h1 { font-family: var(--serif); font-weight: 800; }
-.hero h1 {
+.hero :is(h1, h2) { font-family: var(--serif); font-weight: 800; }
+.hero :is(h1, h2) {
   margin: 14px 0 18px;
   font-size: clamp(54px, 7vw, 102px);
   letter-spacing: -.07em;
   line-height: 1.12;
 }
-.hero h1 em { color: #587845; font-style: normal; }
+.hero :is(h1, h2) em { color: #587845; font-style: normal; }
 .hero-lede {
   max-width: 395px;
   margin: 0;
@@ -294,17 +295,42 @@
 .dialog .process-head { display: block; }
 .dialog .process h2 { font-size: clamp(30px, 5vw, 52px); line-height: 1.18; }
 .dialog .process-intro { max-width: 680px; margin: 18px 0 0; }
+
+.hero-greenhouse {
+  background: radial-gradient(ellipse at 68% 36%, #f8e1b8, transparent 70%), #f7f7ea;
+}
+.hero-greenhouse .hero-map { border-color: #b78f5b; background: #d2ab76; }
+.greenhouse-play {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 46px; margin-top: 24px; padding: 10px 24px; border-radius: 24px;
+  color: #fffcec; background: #345332; font-size: 15px; font-weight: 800;
+}
+.greenhouse-play:hover { background: #426336; }
 </style>
 </head>
 <body>
 <div id="progress" aria-hidden="true"></div>
 <header class="topbar"><a class="brand" href="#top" aria-label="返回首页"><span class="mark">A.</span><span>ANQING <small>PLAYGROUND / 2026</small></span></a><nav class="nav" aria-label="主导航"><a href="#top">网页试玩</a><a class="nav-cta" href="#works">其他作品</a></nav></header>
 <main>
-<section class="hero" id="top" aria-labelledby="featured-title">
+<section class="hero hero-greenhouse" id="top" aria-labelledby="greenhouse-title">
+  <div class="hero-wrap">
+    <div class="hero-copy">
+      <div class="eyebrow">空间解谜 · 10 个关卡</div>
+      <h1 id="greenhouse-title">窗边<em>花房</em></h1>
+      <p class="hero-lede">挪动花盆和水盘，让每盆花都找到合心意的位置。用最少步数通关，收集 30 颗星。</p>
+      <a class="greenhouse-play" href="greenhouse/index.html" target="_blank" rel="noopener" aria-label="开始试玩《窗边花房》">开始试玩</a>
+    </div>
+    <figure class="hero-map">
+      <img src="greenhouse/cover.webp" width="1280" height="720" fetchpriority="high" alt="《窗边花房》实机画面，阳光从半开的窗扇照到摆满花盆的桌面">
+      <span class="anqing-watermark" aria-hidden="true">© 安青 · ANQING</span>
+    </figure>
+  </div>
+</section>
+<section class="hero" id="mossbank" aria-labelledby="featured-title">
   <div class="hero-wrap">
     <div class="hero-copy">
       <div class="eyebrow">策略 · 关卡 · 上头</div>
-      <h1 id="featured-title">苔岸<em>小住</em></h1>
+      <h2 id="featured-title">苔岸<em>小住</em></h2>
       <p class="hero-lede">挪动小动物，帮它们找到合心意的位置。目前做了两章、13 道滑块谜题和 3 封邻里来信。</p>
     </div>
     <figure class="hero-map">

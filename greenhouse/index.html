@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f0e9ce">
+<title>窗边花房 · 场景版</title>
+<link rel="stylesheet" href="scene.css">
+<link rel="stylesheet" href="watermark.css">
+<script defer src="rules.js"></script>
+<script defer src="scene.js"></script>
+</head>
+<body>
+<div class="shell">
+  <main>
+    <section class="play" aria-labelledby="levelTitle">
+      <div class="panorama">
+        <div class="world" id="world" role="group" aria-label="花房里可以摆放花盆的位置">
+          <img class="room" src="room-wide.webp" width="1672" height="941" alt="">
+          <img class="room open-window" id="openWindow" src="room-wide-open.webp" width="1672" height="941" alt="" hidden>
+          <img class="sunbeams" id="sunlight" src="sunbeams.webp" width="1536" height="1024" alt="">
+          <div class="twilight" id="twilight" hidden></div>
+          <div class="window-air" id="wind" aria-hidden="true" hidden><i></i><i></i><i></i></div>
+          <div class="lamp-shine" id="lamp" aria-hidden="true" hidden></div>
+          <div class="scene-tools" id="controls" aria-label="花房操作">
+            <button class="action journal-toggle" id="journalToggle" aria-haspopup="dialog" type="button">▤ 关卡</button>
+            <div class="tool-group">
+              <button class="action" id="undo" type="button" title="撤回（Z）">↶ 撤回</button>
+              <button class="action" id="restart" type="button" title="重开本关（R）">⟳ 重开</button>
+              <button class="action" id="hint" type="button" title="提示（H）">✦ 提示</button>
+              <button class="action" id="soundToggle" aria-label="音效" aria-pressed="true" type="button">音效开</button>
+              <button class="action primary" id="next" type="button" hidden></button>
+            </div>
+          </div>
+          <div id="shadows" aria-hidden="true"></div>
+          <div id="route" class="route" aria-hidden="true" hidden></div>
+          <div id="slots"></div>
+          <div id="fixtures" aria-hidden="true"></div>
+          <div id="plants"></div>
+          <div class="water-label" id="waterLabel" aria-hidden="true" hidden>💧 浅水盘 · 水源</div>
+          <span class="anqing-watermark" aria-hidden="true">© 安青 · ANQING</span>
+          <div class="scene-guide">
+            <div class="lesson" id="lesson" hidden>
+              <span class="lesson-step" id="lessonStep"></span>
+              <p id="lessonText" aria-live="polite"></p>
+            </div>
+            <p class="status" id="status" role="status"></p>
+          </div>
+        </div>
+        <header class="stage-rail" aria-label="本关信息">
+          <div class="stage-brand">
+            <span class="brand-mark" id="brandArt" aria-hidden="true"></span>
+            <h1>窗边花房</h1>
+          </div>
+          <p class="stage-number" id="number"></p>
+          <h2 id="levelTitle"></h2>
+          <p id="brief"></p>
+          <div class="stage-stats">
+            <div class="meter" id="meter"><span>剩余步数</span><strong id="remaining"></strong></div>
+            <div class="weather-label" id="weatherLabel"></div>
+            <div class="star-medal"><span class="gold" aria-hidden="true">★</span> <strong id="total" aria-label="累计星数"></strong></div>
+          </div>
+        </header>
+        <section class="wish-wall" id="wishPanel" aria-labelledby="wishesTitle">
+          <div class="wish-content">
+            <div class="panel-head">
+              <h2 id="wishesTitle">花盆心愿</h2>
+              <span class="count" id="ready"></span>
+            </div>
+            <ul class="wishes" id="wishes"></ul>
+            <p class="scoring" id="goals"></p>
+          </div>
+        </section>
+        <div class="result-scrim" id="result" hidden>
+          <section class="result" role="dialog" aria-modal="true" aria-labelledby="resultTitle" aria-describedby="resultNote">
+            <h2 id="resultTitle"></h2>
+            <span id="resultStars" class="result-stars"></span>
+            <p id="resultNote"></p>
+            <div class="toolbar result-actions">
+              <button class="action" id="resultAside" type="button"></button>
+              <button class="action primary" id="resultNext" type="button"></button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+  <dialog class="journal" id="journal" aria-labelledby="journalTitle">
+    <div class="journal-head">
+      <div>
+        <h2 id="journalTitle">花房手账</h2>
+        <p id="journalSummary"></p>
+      </div>
+      <button class="journal-close" id="journalClose" type="button" aria-label="合上手账">×</button>
+    </div>
+    <div class="level-list" id="levelList"></div>
+  </dialog>
+</div>
+</body>
+</html>
