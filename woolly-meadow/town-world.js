@@ -75,13 +75,6 @@ function createTownWorld(){
   const base=group(site.x,0,site.z,site.farm?farms:village),live=group(site.x,0,site.z,site.farm?farms:root);
   working[id]=live;
   if(site.farm){
-   base.add(meadowSlab(10.9,6.8,.45,.85,0xb68e6b,-1.0));
-   base.add(meadowSlab(10.95,6.85,.45,.15,0xafc69a,-.16));
-   for(const side of [-1,1]){
-    for(let j=-3;j<=3;j++)box(base,wood,j*1.31,.48,side*2.47,.15,.87,.15);
-    for(const y of [.32,.61]){box(base,cream,0,y,side*2.47,8.05,.09,.09);box(base,cream,side*3.96,y,0,.09,.09,4.99)}
-    box(base,wood,side*3.96,.48,0,.15,.87,.15);
-   }
    const barn=group(-2.48,0,-1.23,live);barn.scale.setScalar(.80);cottage(barn,id==='cow'?0xf0dfbd:0xd8b28d,id==='cow'?green:0xa27560);
    if(id==='horse'){
     for(let j=0;j<20;j++){
@@ -181,9 +174,11 @@ function createTownWorld(){
   cartHorse.legs.forEach((leg,j)=>leg.rotation.x=.25*Math.sin(t*5+(j===0||j===3?0:Math.PI)));
   for(const [id,herd] of Object.entries(animals))herd.forEach((a,i)=>{
    if(!a.root.visible)return;
-   const site=townSites[id],phase=t*(id==='horse'?.24:.17)+i*2.09,range=id==='horse'?2.35:1.65;
-   a.root.position.set(site.x+.38+Math.sin(phase)*range,.09,site.z+.45+Math.cos(phase)*1.03);
-   a.root.rotation.y=Math.atan2(range*Math.cos(phase),-1.03*Math.sin(phase));
+   const horse=id==='horse',phase=t*(horse?.075:.052)+i*2.09;
+   const x=(horse?-5.5:-10.6)+Math.sin(phase)*(horse?10.2:8.4);
+   const z=-1.65+Math.sin(phase*2+(horse?.5:1.3))*2.2;
+   a.root.position.set(x,.09,z);
+   a.root.rotation.y=Math.atan2((horse?10.2:8.4)*Math.cos(phase),4.4*Math.cos(phase*2+(horse?.5:1.3)));
    a.head.rotation.x=.10*Math.sin(t*1.7+i)+(id==='cow'?.20:0);
    a.legs.forEach((leg,j)=>leg.rotation.x=.21*Math.sin(t*3.3+i+(j===0||j===3?0:Math.PI)));
   });

@@ -81,3 +81,4 @@ img.coin-icon,.coin-amount img.coin-icon{display:inline-block;width:1.22em;heigh
 #pigSource:focus-visible{outline:2px solid #876849;border-radius:50%}
 
 .pig-ledger{display:none}.pig-view .pig-ledger{display:inline;font-size:13px}.pig-feedback{animation-duration:1.8s}#pigSource{z-index:1}
+.warehouse-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 14px}.warehouse-tabs button{color:#465b46;background:#eee9d8}.warehouse-tabs button[aria-pressed=true]{background:#486e53;color:#fff}.warehouse-goods{min-width:0;border:0;margin:0;padding:0}.warehouse-lock{color:#785631}.grazing-view .truffle-hit{display:block}

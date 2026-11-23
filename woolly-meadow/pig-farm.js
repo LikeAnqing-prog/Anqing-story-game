@@ -17,20 +17,10 @@ function pigSize(level){return size({level})}
 function newPiglet(i,level=0){
  return {level,x:-3.2+(i%4)*1.95,z:-.5+Math.floor(i/4)*1.15,heading:.16+i*.35};
 }
-function createPigFarm({state,collectTruffle,onMerge,buyPig,openWarehouse}){
+function createPigFarm({state,collectTruffle,onMerge,buyPig}){
  const pen=group(pigCenterX,0,0,scene),animals=[],buttons=new Map();
  pen.name="松露坡";
- const soil=0xb0876c,cream=0xf8dfb7,wood=0xaf8460;
- pen.add(meadowSlab(13.55,8.51,.45,.93,soil,-1.1));
- const grass=meadowSlab(13.65,8.64,.48,.15,0xffffff,-.16);grass.material=meadow.material;pen.add(grass);
- for(const side of [-1,1]){
-   for(let i=-4;i<=4;i++)box(pen,wood,i*1.48,.55,side*3.98,.19,1.03,.18);
-   for(let i=-2;i<=2;i++)box(pen,wood,side*6.23,.55,i*1.60,.19,1.03,.18);
-   for(const y of [.43,.85]){
-     box(pen,cream,0,y,side*3.98,12.7,.12,.11);
-     box(pen,cream,side*6.23,y,0,.13,.12,7.9);
-   }
- }
+ const cream=0xf8dfb7,wood=0xaf8460;
  const hut=group(-4.4,.08,-2.52,pen);
  box(hut,0xd6ac84,0,.77,0,2.55,1.50,1.73);box(hut,0x896452,0,.56,.88,1.06,1.08,.07);
  for(let i=-5;i<=5;i++)box(hut,0xbe9576,i*.22,.79,.87,.019,1.46,.026);
@@ -48,9 +38,6 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig,openWarehouse}){
   part(bell,pole,0xf2cb70,0,-.28,0,.20,.05,.18);
   oval(bell,0x815c32,0,-.315,0,.028,.034,.028);
  }
- const warehouse=document.createElement('button');warehouse.className='world-label';warehouse.id='pigWarehouse';
- warehouse.textContent='猪仓库';warehouse.hidden=true;warehouse.onclick=openWarehouse;document.body.append(warehouse);
- const warehousePoint=hut.getWorldPosition(new T.Vector3()).add(new T.Vector3(0,1.45,.6));
  for(const [x,z,s] of [[2.6,-1.7,1.45],[3.9,-1.5,1.1],[2.5,-.9,.8]])oval(pen,0xa7886c,x,.075,z,s,.044,s*.67);
  for(let i=0;i<46;i++){
   const x=Math.sin(i*6.73)*5.86,z=Math.cos(i*9.11)*3.6;
@@ -192,7 +179,7 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig,openWarehouse}){
  function sync(){
   const herd=state().herd,s=state();
   bells.visible=s.pigBell>0;bells.children[1].visible=s.pigBell===2;
-  pile.visible=herd.length>0;basket.visible=herd.length>0&&s.pigCollector>0;
+  hut.visible=herd.length>0; pile.visible=herd.length>0;basket.visible=herd.length>0&&s.pigCollector>0;
   trough.visible=herd.length>0&&s.pigLevel>=2;annex.visible=herd.length>0&&s.pigLevel>=3;
   for(let i=animals.length-1;i>=0;i--){
    const a=animals[i];if(herd.includes(a.data))continue;
@@ -220,7 +207,7 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig,openWarehouse}){
    const amount=cycles*woolYield(pig.level),count=Math.min(4,pig.level+1),angle=Math.random()*Math.PI*2;
    for(let j=0;j<count;j++){
     const dir=angle+j*Math.PI*2/count,r=.65+Math.random()*.45;
-    const t={x:T.MathUtils.clamp(pig.x+Math.sin(dir)*r,-5.7,5.7),z:T.MathUtils.clamp(pig.z+Math.cos(dir)*r,-2.9,3.45),
+    const t={x:T.MathUtils.clamp(pig.x+Math.sin(dir)*r,grazing.left-pigCenterX,grazing.right-pigCenterX),z:T.MathUtils.clamp(pig.z+Math.cos(dir)*r,grazing.back,grazing.front),
      amount:Math.floor(amount/count)+(j<amount%count?1:0)};
     if(s.truffles.length>=woolDropLimit){
      const nearest=s.truffles.reduce((best,v)=>Math.hypot(v.x-t.x,v.z-t.z)<Math.hypot(best.x-t.x,best.z-t.z)?v:best);
@@ -258,8 +245,8 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig,openWarehouse}){
   if(held||ghost)return true;
   aim(e);const a=hit();
   if(!a){
-   if(!state().herd.length||!ray.intersectObject(hut,true).length)return false;
-   openWarehouse();return true;
+   if(!pile.visible||!ray.intersectObject(pile,true).length)return false;
+   buyPig();return true;
   }
   ray.ray.intersectPlane(surface,floorPoint);
   held={a,id:e.pointerId,x:a.data.x,z:a.data.z,dx:a.data.x-(floorPoint.x-pen.position.x),dz:a.data.z-floorPoint.z};
@@ -269,8 +256,8 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig,openWarehouse}){
   if(!held||held.id!==e.pointerId)return false;
   aim(e);const a=held.a,d=a.data;
   ray.ray.intersectPlane(surface,floorPoint);
-  d.x=T.MathUtils.clamp(floorPoint.x-pen.position.x+held.dx,-5.25,5.25);
-  d.z=T.MathUtils.clamp(floorPoint.z+held.dz,-2.1,3.1);
+  d.x=T.MathUtils.clamp(floorPoint.x-pen.position.x+held.dx,grazing.left-pigCenterX,grazing.right-pigCenterX);
+  d.z=T.MathUtils.clamp(floorPoint.z+held.dz,grazing.back,grazing.front);
   over=hit(a)||animals.find(b=>b!==a&&!b.launch&&Math.hypot(b.data.x-d.x,b.data.z-d.z)<.9);
   return true;
  }
@@ -318,7 +305,8 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig,openWarehouse}){
    if(!isHeld&&over!==a){
     a.turn-=dt;if(a.turn<=0){d.heading+=(Math.random()-.5)*1.25;a.turn=1.4+Math.random()*2.9;a.speed=Math.random()<.24?0:.32+Math.random()*.38}
     const nx=d.x+a.speed*Math.sin(d.heading)*dt,nz=d.z+a.speed*Math.cos(d.heading)*dt;
-    if(nx<-4.85||nx>4.95||nz<-1.95||nz>2.85){d.heading=Math.atan2(-d.x,-d.z);d.x=T.MathUtils.clamp(d.x,-4.85,4.95);d.z=T.MathUtils.clamp(d.z,-1.95,2.85)}
+    if(nx+pigCenterX<grazing.left||nx+pigCenterX>grazing.right||nz<grazing.back||nz>grazing.front){d.heading=Math.atan2(fieldX-pigCenterX-d.x,fieldZ-d.z)}
+
     else{d.x=nx;d.z=nz}
    }
    const k=pigSize(d.level);a.bounce=Math.max(0,a.bounce-dt*1.35);
@@ -352,8 +340,6 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig,openWarehouse}){
   }
  }
  function showSource(visible,place,px){
-  warehouse.hidden=!visible||!pile.visible;
-  if(!warehouse.hidden)place(warehouse,warehousePoint,px);
   basketButton.hidden=!visible||!basket.visible;
   if(!basketButton.hidden){
    projected.set(pigCenterX+basket.position.x,.4,basket.position.z);

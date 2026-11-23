@@ -35,9 +35,12 @@ function meadowSlab(width,depth,radius,thickness,color,y){
   for(let i=0;i<uv.count;i++)uv.setXY(i,v.getX(i)/width+.5,v.getZ(i)/depth+.5);
   return part(world,geo,color,0,y,0,1,1,1);
 }
-meadowSlab(18.1,11.85,.55,.95,0xc79870,-1.1);
-meadowSlab(18.23,11.96,.58,.12,0xb6a26e,-.27);
-const meadow=meadowSlab(18.31,12.03,.6,.15,0xffffff,-.16);
+// All grazing and ground drops use world coordinates inside the same perimeter.
+const grazing={left:-21.8,right:7.65,back:-12.45,front:4.75};
+const fieldX=-6.98,fieldZ=-4.32;
+const soilLayers=[meadowSlab(33.05,21.35,.66,.95,0xc79870,-1.1),meadowSlab(33.15,21.45,.67,.12,0xb6a26e,-.27)];
+const meadow=meadowSlab(33.22,21.51,.69,.15,0xffffff,-.16);
+for(const layer of [...soilLayers,meadow]){layer.position.x=fieldX;layer.position.z=fieldZ}
 meadow.material=mats.get(0xffffff).clone();
 meadow.material.map=canvasMap(1024,(ctx,n)=>{
   ctx.fillStyle='#a5bf80';ctx.fillRect(0,0,n,n);
@@ -48,7 +51,7 @@ meadow.material.map=canvasMap(1024,(ctx,n)=>{
   }
   for(let i=0;i<18000;i++){ctx.fillStyle=i%2?'rgba(72,125,79,.09)':'rgba(249,241,173,.26)';ctx.fillRect(rand()*n,rand()*n,1.1,2.5)}
 });
-for(let i=0;i<80;i++){const x=rand()*17.3-8.65,y=-.4-rand()*.59;part(world,rock,i%3?0xd3ab83:0xb68c6e,x,y,5.93,.045+rand()*.12,.044,.042)}
+for(let i=0;i<80;i++){const x=rand()*32-23,y=-.4-rand()*.59;part(world,rock,i%3?0xd3ab83:0xb68c6e,x,y,6.35,.045+rand()*.12,.044,.042)}
 const ground=new T.Mesh(new T.PlaneGeometry(200,200),new T.ShadowMaterial({opacity:.14}));ground.rotation.x=-Math.PI/2;ground.position.y=-1.18;scene.add(ground);ground.receiveShadow=true;
 function fence(x,z,n,angle){
   const g=group(x,.07,z);g.rotation.y=angle;
@@ -64,7 +67,9 @@ function fence(x,z,n,angle){
     box(g,0xcda782,(i+.62)*1.45,h-.022,.028,.49,.012,.01);
   }
 }
-fence(-8.72,-5.65,12,0);fence(-8.72,-5.65,7,-Math.PI/2);fence(8.68,-5.65,7,-Math.PI/2);fence(-8.72,5.65,3,0);fence(4.33,5.65,3,0);
+// Twenty-two bays across and fourteen deep. Leave a two-bay entrance at the front.
+fence(-22.93,-14.47,22,0);fence(-22.93,-14.47,14,-Math.PI/2);fence(8.97,-14.47,14,-Math.PI/2);
+fence(-22.93,5.83,10,0);fence(-5.53,5.83,10,0);
 const barn=group(-5.55,.06,-3.72);
 box(barn,0xbb7261,0,.91,0,3,1.82,2.1);
 const gable=new T.Shape();gable.moveTo(-1.5,0);gable.lineTo(0,1.1);gable.lineTo(1.5,0);gable.closePath();
@@ -103,7 +108,7 @@ for(let i=0;i<cp.count;i++){
   v.multiplyScalar(1+.045*Math.sin(v.x*9+v.y*5)*Math.cos(v.z*8-v.y*5));cp.setXYZ(i,v.x,v.y,v.z);
 }
 canopy.computeVertexNormals();
-for(const [x,z,h] of [[-7.9,-3,2.4],[-7.7,-4.9,3.25],[6.9,-4.9,3.35],[8,-3.25,2.55],[4.95,-5.05,2.4]]){
+for(const [x,z,h] of [[-22,-9.7,2.4],[-20,-13.1,3.25],[6.9,-4.9,3.35],[8,-3.25,2.55],[4.95,-5.05,2.4]]){
   const tree=group(x,.06,z),greens=[0x75a185,0x88ae85,0x9aba89,0xabc58e];
   part(tree,pole,0xab8667,0,h*.28,0,.32,h*.56,.34);
   for(let i=0;i<6;i++){
@@ -123,8 +128,8 @@ for(const [x,z] of [[-3.5,-3.9],[-2.6,-4.55],[7.7,3.9]]){
   }
 }
 const bladeGeo=new T.ConeGeometry(1,1,5),petalGeo=new T.SphereGeometry(1,10,7);
-for(let i=0;i<300;i++){
-  const x=rand()*17.6-8.8,z=rand()*11.45-5.72;
+for(let i=0;i<425;i++){
+  const x=rand()*31.5-22.8,z=rand()*19.8-14.25;
   for(let j=0;j<3;j++){
     const blade=part(world,bladeGeo,j===1?0x83a36c:0x96b176,x+j*.058,.14,z,.028,.14+rand()*.14,.024);blade.rotation.z=.54-j*.45;
   }
@@ -363,8 +368,8 @@ looseFleece.computeVertexNormals();
 const woolDropLimit=32;
 function shedWool(source,amount,angle){
   const p=source.root.position;
-  const x=T.MathUtils.clamp(p.x+Math.cos(angle)*1.32,-7.9,7.9);
-  const z=T.MathUtils.clamp(p.z+Math.sin(angle)*1.13,-2.55,5.0);
+  const x=T.MathUtils.clamp(p.x+Math.cos(angle)*1.32,grazing.left,grazing.right);
+  const z=T.MathUtils.clamp(p.z+Math.sin(angle)*1.13,grazing.back,grazing.front);
   // Cluster a long unattended harvest into existing balls without losing its value.
   if(woolDrops.length>=woolDropLimit){
     const nearest=woolDrops.reduce((a,b)=>Math.hypot(a.root.position.x-x,a.root.position.z-z)<Math.hypot(b.root.position.x-x,b.root.position.z-z)?a:b);
@@ -464,7 +469,7 @@ document.querySelector('#reset').onclick=reset;
 const ray=new T.Raycaster(),pointer=new T.Vector2(),floor=new T.Plane(new T.Vector3(0,1,0),-.07);
 function aim(e){ray.layers.mask=camera.layers.mask;pointer.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);ray.setFromCamera(pointer,camera)}
 function pick(exclude){const choices=flock.filter(s=>s!==exclude&&!s.fall);const hits=ray.intersectObjects(choices.map(s=>s.body),true);if(hits.length){let o=hits[0].object;while(o.parent!==scene)o=o.parent;return choices.find(s=>s.root===o)}return null}
-function place(e){aim(e);const p=ray.ray.intersectPlane(floor,new T.Vector3());const s=drag.s;s.root.position.x=T.MathUtils.clamp(p.x+drag.dx,-7.6,7.6);s.root.position.z=T.MathUtils.clamp(p.z+drag.dz,-2.65,4.65);target=pick(s)||flock.filter(t=>t!==s&&!t.fall).sort((a,b)=>a.root.position.distanceToSquared(s.root.position)-b.root.position.distanceToSquared(s.root.position))[0];if(target&&Math.hypot(target.root.position.x-s.root.position.x,target.root.position.z-s.root.position.z)>(size(s)+size(target))*.59&&!pick(s))target=null;ring.visible=!!target&&compatible(s,target);if(ring.visible){ring.position.copy(target.root.position);ring.position.y=.095;ring.scale.setScalar(size(target)*1.14)}}
+function place(e){aim(e);const p=ray.ray.intersectPlane(floor,new T.Vector3());const s=drag.s;s.root.position.x=T.MathUtils.clamp(p.x+drag.dx,grazing.left,grazing.right);s.root.position.z=T.MathUtils.clamp(p.z+drag.dz,grazing.back,grazing.front);target=pick(s)||flock.filter(t=>t!==s&&!t.fall).sort((a,b)=>a.root.position.distanceToSquared(s.root.position)-b.root.position.distanceToSquared(s.root.position))[0];if(target&&Math.hypot(target.root.position.x-s.root.position.x,target.root.position.z-s.root.position.z)>(size(s)+size(target))*.59&&!pick(s))target=null;ring.visible=!!target&&compatible(s,target);if(ring.visible){ring.position.copy(target.root.position);ring.position.y=.095;ring.scale.setScalar(size(target)*1.14)}}
 canvas.onpointerdown=e=>{if(drag)return;const d=pickWool(e);if(d){collect(d,e);return}if(join)return;aim(e);const s=pick();if(!s)return;let p=ray.ray.intersectPlane(floor,new T.Vector3());drag={s,id:e.pointerId,dx:s.root.position.x-p.x,dz:s.root.position.z-p.z,origin:s.root.position.clone()};canvas.setPointerCapture(e.pointerId);canvas.style.cursor='grabbing'};
 canvas.onpointermove=e=>{if(drag){if(drag.id===e.pointerId)place(e)}else{aim(e);canvas.style.cursor=pickWool(e)?'pointer':pick()?'grab':'default'}};
 function release(e,cancel){if(!drag||e.pointerId!==drag.id)return;const s=drag.s;if(!cancel){place(e);if(target&&compatible(s,target))join={a:s,b:target,start:s.root.position.clone(),t:0};
@@ -480,7 +485,7 @@ let updateSceneView=null;
 function frame(now){requestAnimationFrame(frame);let dt=Math.min(.05,(now-prev)/1000);prev=now;time+=dt;if(updateSceneView)updateSceneView(now);updateCloud(dt,now);
 for(const s of flock){if(s.fall){fall(s,dt);continue}const held=drag?.s===s,joining=join&&(join.a===s||join.b===s);let walk=0;if(!held&&!joining&&target!==s){s.timer-=dt;if(s.timer<=0){s.turn=s.angle+(rand()-.5)*2.3;s.speed=rand()<.23?0:.35+rand()*.38;s.timer=1.1+rand()*3.4}
 const p=s.root.position,nx=p.x+Math.sin(s.angle)*s.speed*dt,nz=p.z+Math.cos(s.angle)*s.speed*dt;
-if((nx<-7.4&&nx<p.x)||(nx>7.4&&nx>p.x)||(nz<-2.7&&nz<p.z)||(nz>4.55&&nz>p.z)){s.turn=Math.atan2(-p.x,-p.z);s.timer=1.8}else{p.x=nx;p.z=nz;walk=s.speed}
+if((nx<grazing.left&&nx<p.x)||(nx>grazing.right&&nx>p.x)||(nz<grazing.back&&nz<p.z)||(nz>grazing.front&&nz>p.z)){s.turn=Math.atan2(fieldX-p.x,fieldZ-p.z);s.timer=1.8}else{p.x=nx;p.z=nz;walk=s.speed}
 s.angle+=Math.atan2(Math.sin(s.turn-s.angle),Math.cos(s.turn-s.angle))*Math.min(1,dt*2.9)}
 s.root.rotation.y=s.angle;s.step+=dt*(walk?6:2);s.legs.forEach((g,i)=>g.rotation.x=walk*Math.sin(s.step+(i===0||i===3?0:Math.PI))*.68);
 s.lift+=((held?.95:0)-s.lift)*Math.min(1,dt*13);s.root.position.y=.07+s.lift+Math.abs(Math.sin(s.step))*walk*.12;

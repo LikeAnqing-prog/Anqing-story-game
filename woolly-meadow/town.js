@@ -16,6 +16,16 @@ const townOrders=[
  {id:'dinner',name:'山间晚宴',items:{bunnyGift:1,fondue:3}},
  {id:'festival',name:'冬日市集包场',items:{starTent:1,wallHanging:1,fondue:8}}
 ];
+const townTools={
+ milkCan:{animal:'cow',name:'扩容奶桶',prices:[120,240]},
+ milkBrush:{animal:'cow',name:'按摩乳刷',prices:[160,320]},
+ saddlebags:{animal:'horse',name:'双侧驮袋',prices:[360,720]},
+ horseshoes:{animal:'horse',name:'轻便蹄铁',prices:[400,800]}
+};
+function milkInterval(t){return [10000,8000,6000][t.milkBrush||0]}
+function vatCapacity(t,tier=t.cow){return townBusinesses.cow.capacity[tier]+4*(t.milkCan||0)}
+function loadCapacity(t,tier=t.horse){return tier?2**(tier-1+t.depot)+(t.saddlebags||0):0}
+function tripDuration(t,tier=t.horse){return Math.round(townBusinesses.horse.seconds[tier]*[1,.85,.7][t.horseshoes||0]*1000)}
 function initialTown(){
  return {cow:0,horse:0,dairy:0,inn:0,depot:0,vat:0,milkDue:0,stock:{milk:0,truffle:0,cheese:0,fondue:0},
   keepTruffles:false,jobs:{},shipment:null};
@@ -64,9 +74,9 @@ function createTown({visitMarket,state,recipes,productImage,commit}){
  function tick(now){
   const t=state().town;let changed=false;
   if(t.cow&&now>=t.milkDue){
-   const cycles=1+Math.floor((now-t.milkDue)/10000);
-   t.vat=Math.min(townBusinesses.cow.capacity[t.cow],t.vat+cycles*townBusinesses.cow.yield[t.cow]);
-   t.milkDue+=cycles*10000;changed=true;
+   const period=milkInterval(t),cycles=1+Math.floor((now-t.milkDue)/period);
+   t.vat=Math.min(vatCapacity(t),t.vat+cycles*townBusinesses.cow.yield[t.cow]);
+   t.milkDue+=cycles*period;changed=true;
   }
   for(const [id,job] of Object.entries(t.jobs)){
    if(now<job.due)continue;
@@ -99,12 +109,12 @@ function createTown({visitMarket,state,recipes,productImage,commit}){
   if(price===undefined)return '';
   const tier=level+1,lot=2**level;
   let desc='';
-  if(id==='cow')desc='每 10 秒产 '+cfg.yield[tier]+' 桶鲜奶，储奶槽可存 '+cfg.capacity[tier]+' 桶。';
-  if(id==='horse')desc='每趟最多运 '+(lot*2**state().town.depot)+' 份订单，用时 '+cfg.seconds[tier]+' 秒，送达价比自提高 35%。';
+  if(id==='cow')desc='每 '+milkInterval(state().town)/1000+' 秒产 '+cfg.yield[tier]+' 桶鲜奶，储奶槽可存 '+vatCapacity(state().town,tier)+' 桶。';
+  if(id==='horse')desc='每趟最多运 '+loadCapacity(state().town,tier)+' 份订单，用时 '+tripDuration(state().town,tier)/1000+' 秒，送达价比自提高 35%。';
   if(id==='dairy'||id==='inn')desc='每批最多做 '+lot+' 份'+goods(cfg.output)+'，用时 '+cfg.seconds+' 秒。';
   return row(level?'扩建至 '+tier+' 级':'开设'+townSites[id].name,desc,button('invest',(level?'扩建':'开设')+' · '+coinAmount(price),state().coins>=price));
  }
- function convoyCapacity(){const t=state().town;return t.horse?2**(t.horse-1+t.depot):0}
+ function convoyCapacity(){return loadCapacity(state().town)}
  function payout(order,n,delivery){
   const value=Object.entries(order.items).reduce((sum,[id,q])=>sum+q*(townGoods[id]||recipes[id]).price,0);
   const pickup=Math.round(value*(1.10+Math.max(0,Math.log2(n)-2)*.04)*n);
@@ -114,8 +124,9 @@ function createTown({visitMarket,state,recipes,productImage,commit}){
   const q=quantity(id);
   return row(goods(id)+' ×'+q,'可留作供货，或以 '+coinAmount(townGoods[id].price)+' 的单价现卖。',button('sell','卖 1 份',q>0));
  }
- function lotControl(max){
-  return '<div class="town-lots">每批份数 '+[1,2,4,8,16,32].filter(n=>n<=max).map(n=>'<button data-lot="'+n+'" aria-pressed="'+(n===batch)+'">'+n+'</button>').join('')+'</div>';
+ function lotControl(max,additional=[]){
+  const lots=[...new Set([1,2,4,8,16,32,...additional])].filter(n=>n>=1&&n<=max).sort((a,b)=>a-b);
+  return '<div class="town-lots">每批份数 '+lots.map(n=>'<button data-lot="'+n+'" aria-pressed="'+(n===batch)+'">'+n+'</button>').join('')+'</div>';
  }
  function render(){
   const s=state(),t=s.town,id=focus,cfg=townBusinesses[id];
@@ -124,7 +135,7 @@ function createTown({visitMarket,state,recipes,productImage,commit}){
   let html='<div class="town-wallet">'+coinAmount(s.coins)+(cfg?' · '+(t[id]?'设施 '+t[id]+' 级':'待开设'):'')+'</div>';
   if(cfg)html+=investment(id);
   if(id==='cow'&&t.cow){
-   html+=row('储奶槽 · '+t.vat+' / '+cfg.capacity[t.cow],t.vat>=cfg.capacity[t.cow]?'已盛满，收奶后继续产出。':'下次产奶 '+clock(t.milkDue),button('collect','收鲜奶',t.vat>0))+sellRow('milk');
+   html+=row('储奶槽 · '+t.vat+' / '+vatCapacity(t),t.vat>=vatCapacity(t)?'已盛满，收奶后继续产出。':'下次产奶 '+clock(t.milkDue),button('collect','收鲜奶',t.vat>0))+sellRow('milk');
   }
   if((id==='dairy'||id==='inn')&&t[id]){
    const job=t.jobs[id];html+=lotControl(2**(t[id]-1));
@@ -135,7 +146,7 @@ function createTown({visitMarket,state,recipes,productImage,commit}){
   if(id==='market'){
    const price=depotPrices[t.depot];
    if(price)html+=row('扩建货栈 · '+(4*2**t.depot)+' → '+(8*2**t.depot)+' 份','扩大自提单和马车装载量。8 / 16 / 32 份大单分别加价 14% / 18% / 22%。',button('depot','扩建 · '+coinAmount(price),s.coins>=price));
-   html+=lotControl(4*2**t.depot);
+   html+=lotControl(4*2**t.depot,t.horse?Array.from({length:t.saddlebags||0},(_,i)=>2**(t.horse-1+t.depot)+i+1):[]);
    const trip=t.shipment;
    if(trip){const contract=townOrders.find(o=>o.id===trip.order);
     html+=row(contract.name+' ×'+trip.qty,trip.arrived?'马车已抵达，货款 '+coinAmount(trip.pay):'马车运输中 · '+clock(trip.due),button('claim','领取货款',trip.arrived));
@@ -158,7 +169,7 @@ function createTown({visitMarket,state,recipes,productImage,commit}){
   const action=btn.dataset.town,id=focus,s=state(),t=s.town,cfg=townBusinesses[id],now=Date.now();
   if(action==='invest'){
    const price=cfg.prices[t[id]];if(!price||s.coins<price)return;
-   s.coins-=price;t[id]++;if(id==='cow'&&t.cow===1)t.milkDue=now+10000;
+   s.coins-=price;t[id]++;if(id==='cow'&&t.cow===1)t.milkDue=now+milkInterval(t);
    feedback=townSites[id].name+(t[id]===1?'已开业':'扩建完成');
   }else if(action==='depot'){
    const price=depotPrices[t.depot];if(!price||s.coins<price)return;
@@ -177,7 +188,7 @@ function createTown({visitMarket,state,recipes,productImage,commit}){
    const [method,orderId]=action.split('-'),order=townOrders.find(o=>o.id===orderId),ship=method==='ship';
    if(!order||batch>4*2**t.depot||!enough(order.items,batch)||(ship&&(t.shipment||batch>convoyCapacity())))return;
    const pay=payout(order,batch,ship);consume(order.items,batch);
-   if(ship){t.shipment={order:orderId,qty:batch,pay,start:now,due:now+townBusinesses.horse.seconds[t.horse]*1000,arrived:false};feedback='已装车发往'+order.name}
+   if(ship){t.shipment={order:orderId,qty:batch,pay,start:now,due:now+tripDuration(t),arrived:false};feedback='已装车发往'+order.name}
    else{s.coins+=pay;feedback='自提到账 '+coinAmount(pay)}
   }else return;
   commit();

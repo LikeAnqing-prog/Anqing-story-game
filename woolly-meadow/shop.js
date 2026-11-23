@@ -318,7 +318,7 @@ let farmTab='tools',nextSweep=0;
 const pigManage=document.createElement('button');pigManage.className='pig-manage';pigManage.textContent='照料猪场';document.body.append(pigManage);
 const pigLedger=document.createElement('b');pigLedger.className='pig-ledger';document.querySelector('header .stats').append(pigLedger);
 const pigCost=40;
-const pigFarm=createPigFarm({state:()=>shop,openWarehouse:()=>openFarm('pigTools'),buyPig(){
+const pigFarm=createPigFarm({state:()=>shop,buyPig(){
  if(!shop.herd.length)return;
  if(shop.herd.length>=pigPlots[shop.pigLevel-1].capacity){pigFarm.tell('猪舍已满，合成或扩建后再来哦');return}
  if(shop.coins<pigCost){pigFarm.tell('还差 '+(pigCost-shop.coins)+' 枚金币');return}
@@ -390,21 +390,40 @@ function toolRow(key,title,description,level=shop.tools[key],prices=costs[key]){
  const cost=prices[level];
  return `<article><div><b>${title} · ${level} / 2 级</b><p>${description}</p></div><button data-tool="${key}" ${!cost||shop.coins<cost?'disabled':''}>${!cost?'已满级':(level?'升级':'购买')+' · '+coinAmount(cost)}</button></article>`;
 }
+const warehouseTabs={tools:'羊',pigTools:'猪',cow:'牛',horse:'马'};
+function livestockTools(animal){
+ const t=shop.town;
+ const descriptions={
+  milkCan:'每级增加 4 桶储奶容量，满级多存 8 桶。',
+  milkBrush:'产奶间隔依次缩至 8 秒、6 秒。',
+  saddlebags:'每级让一趟马车多装 1 份订单。',
+  horseshoes:'一级缩短 15% 运送时间，二级缩短 30%。'
+ };
+ return Object.entries(townTools).filter(([,item])=>item.animal===animal)
+  .map(([key,item])=>toolRow(key,item.name,descriptions[key],t[key]||0,item.prices)).join('');
+}
 function renderFarm(){
  if(!farmDialog.open)return;
  const tools=farmTab==='tools',pigTools=farmTab==='pigTools',owned=shop.herd.length>0,plot=pigPlots[shop.pigLevel-1],next=pigPlots[shop.pigLevel];
  const period=pigDigPeriod(shop.pigLevel,shop.pigBell),seconds=period/1000;
- farmDialog.querySelector('h2').textContent=tools?'羊仓库':pigTools?'猪仓库':owned?'松露小猪牧场':'扩建小猪牧场';
+ const warehouse=Object.hasOwn(warehouseTabs,farmTab),t=shop.town;
+ const available=tools||(pigTools?owned:!!t[farmTab]);
+ const tabs=warehouse?'<div class="warehouse-tabs" role="group" aria-label="动物工具">'+Object.entries(warehouseTabs).map(([tab,name])=>'<button data-warehouse-tab="'+tab+'" aria-pressed="'+(tab===farmTab)+'">'+name+'</button>').join('')+'</div>':'';
+ farmDialog.querySelector('h2').textContent=warehouse?'牧场仓库':owned?'松露小猪牧场':'扩建小猪牧场';
  const body=tools?toolRow('collector','毛团收集器','每 3 秒自动拾取地面毛团。一级收 2 堆，二级收 5 堆。')+
   toolRow('shears','梳毛刷','永久缩短全场产毛间隔。一级每 4 秒一轮，二级每 3 秒一轮。'):
   pigTools?toolRow('pigCollector','松露收集篮',shop.pigCollector?'每 3 秒自动收 '+collectorRate.piles[shop.pigCollector]+' 堆松露。'+(shop.pigCollector===1?'升级后每次收 5 堆。':'已达到最高收集速率。'):'自动拾取地上的松露。购买后每 3 秒收 2 堆，升到二级每次收 5 堆。',shop.pigCollector,costs.collector)+
   toolRow('pigBell','寻香铃','全场香猪每 '+seconds+' 秒挖一轮松露。'+(shop.pigBell<2?'升至 '+(shop.pigBell+1)+' 级后每 '+pigDigPeriod(shop.pigLevel,shop.pigBell+1)/1000+' 秒一轮。':'已达到最高寻香加成。'),shop.pigBell,costs.shears):
+  warehouse?livestockTools(farmTab):
   owned?`<article><div><b>猪舍 · ${shop.herd.length} / ${plot.capacity} 只</b><p>点地上的便便堆领香猪，每只 ${coinAmount(pigCost)}。两只同款合成下一阶，共八阶。每 ${seconds} 秒拱一次松露，每只每轮产 1 至 255 份。已合成 ${shop.pigMerges} 次。</p></div></article>
- <article><div><b>猪仓库</b><p>松露收集篮 ${shop.pigCollector} 级 · 寻香铃 ${shop.pigBell} 级</p></div><button data-open-pig-tools>购买工具</button></article>
+ <article><div><b>牧场仓库 · 香猪工具</b><p>松露收集篮 ${shop.pigCollector} 级 · 寻香铃 ${shop.pigBell} 级</p></div><button data-open-pig-tools>购买工具</button></article>
  <article><div><b>松露去向</b><p>仓库中有 ${shop.town.stock.truffle} 份食材。</p></div><button data-truffles>${shop.town.keepTruffles?'留作食材 · 切换':'直接出售 · 切换'}</button></article>
  <article><div><b>牧场等级 · ${shop.pigLevel} / 3</b><p>${next?'加建'+(shop.pigLevel===1?'饲料槽':'休息棚')+'，可养 '+next.capacity+' 只猪，每 '+next.period/1000+' 秒挖一轮松露。':'饲料槽和休息棚已建成。'}</p></div><button data-pig-upgrade ${!next||shop.coins<plot.price?'disabled':''}>${next?'升级牧场 · '+coinAmount(plot.price):'牧场已满级'}</button></article>`:
-  `<article><div><b>松露坡 · 开垦新地</b><p>修好围栏和猪舍，迎来两只小猪。它们会在土里寻找松露，收入存入牧场的钱包。</p></div><button data-expand ${shop.coins<120?'disabled':''}>开垦 · ${coinAmount(120)}</button></article>`;
- farmDialog.querySelector('.farm-content').innerHTML='<div class="funds">可用 '+coinIcon+' <b>'+shop.coins+'</b></div>'+body;
+  `<article><div><b>松露坡 · 开垦新地</b><p>启用猪舍，迎来两只小猪。它们会在土里寻找松露，收入存入牧场的钱包。</p></div><button data-expand ${shop.coins<120?'disabled':''}>开垦 · ${coinAmount(120)}</button></article>`;
+ const locked=warehouse&&!available;
+ const lockText=pigTools?'开垦松露猪场后可购买':farmTab==='cow'?'开设风铃奶牛场后可购买':'开设栗风马场后可购买';
+ farmDialog.querySelector('.farm-content').innerHTML=tabs+'<div class="funds">可用 '+coinIcon+' <b>'+shop.coins+'</b></div>'+
+  (locked?'<p class="warehouse-lock">'+lockText+'</p>':'')+(warehouse?'<fieldset class="warehouse-goods" '+(locked?'disabled':'')+'>'+body+'</fieldset>':body);
 }
 function upgradeDigRate(field){
  const now=Date.now(),oldPeriod=pigDigPeriod(shop.pigLevel,shop.pigBell);
@@ -418,6 +437,7 @@ farmDialog.addEventListener('click',e=>{
  const btn=e.target.closest('button');if(!btn||btn.disabled)return;
  if(btn.hasAttribute('data-close')){farmDialog.close();return}
  if(btn.hasAttribute('data-open-pig-tools')&&shop.herd.length){farmTab='pigTools';renderFarm();return}
+ if(Object.hasOwn(warehouseTabs,btn.dataset.warehouseTab)){farmTab=btn.dataset.warehouseTab;renderFarm();return}
  const tool=btn.dataset.tool;
  if(farmTab==='pigTools'&&shop.herd.length&&(tool==='pigCollector'||tool==='pigBell')){
   const prices=tool==='pigCollector'?costs.collector:costs.shears,cost=prices[shop[tool]];
@@ -425,6 +445,17 @@ farmDialog.addEventListener('click',e=>{
   if(tool==='pigBell')upgradeDigRate(tool);
   else shop.pigCollector++;
   shop.coins-=cost;pigFarm.sync();
+ }else if(Object.hasOwn(townTools,tool)){
+  const item=townTools[tool],t=shop.town,level=t[tool]||0,cost=item.prices[level];
+  if(farmTab!==item.animal||!t[item.animal]||!cost||shop.coins<cost)return;
+  const now=Date.now();town.tick(now);
+  const oldMilk=milkInterval(t),oldTrip=tripDuration(t);
+  t[tool]=level+1;shop.coins-=cost;
+  if(tool==='milkBrush')t.milkDue=now+(t.milkDue-now)*milkInterval(t)/oldMilk;
+  if(tool==='horseshoes'&&t.shipment&&!t.shipment.arrived){
+   const ratio=tripDuration(t)/oldTrip;
+   t.shipment.start=now+(t.shipment.start-now)*ratio;t.shipment.due=now+(t.shipment.due-now)*ratio;
+  }
  }else if(farmTab==='tools'&&tool&&Object.hasOwn(costs,tool)){
   const key=btn.dataset.tool,price=costs[key][shop.tools[key]];
   if(price===undefined||shop.coins<price)return;

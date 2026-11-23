@@ -9,7 +9,7 @@ function installShopView({town,door,portraits,openGuest,openBench,openDisplay,le
   nav.innerHTML='<button type="button" data-minus aria-label="缩小">−</button><button type="button" data-plus aria-label="放大">＋</button><button type="button" data-home>全景</button>';
   document.body.append(nav);
   const bench=document.createElement('button');bench.id='benchSpot';bench.className='world-label';bench.textContent='工作台';document.body.append(bench);
-  const barnBtn=document.createElement('button');barnBtn.id='barnTools';barnBtn.className='world-label';barnBtn.textContent='羊仓库';document.body.append(barnBtn);barnBtn.onclick=openBarn;
+  const barnBtn=document.createElement('button');barnBtn.id='barnTools';barnBtn.className='world-label';barnBtn.textContent='牧场仓库';document.body.append(barnBtn);barnBtn.onclick=openBarn;
   const collectorBtn=document.createElement('button'),rateTip=document.createElement('div');
   collectorBtn.id='collectorHit';collectorBtn.className='person-hit';collectorBtn.hidden=true;collectorBtn.setAttribute('aria-label','查看毛团收集器速率');
   rateTip.className='collector-rate';rateTip.hidden=true;rateTip.setAttribute('role','status');
@@ -20,8 +20,8 @@ function installShopView({town,door,portraits,openGuest,openBench,openDisplay,le
   const farmCenter=new T.Vector3(-6.9,.55,-4.0),farmOffset=new T.Vector3(2,21,26);
   const farmHeight=()=>Math.max(23,37/(innerWidth/innerHeight));
   aimPoint.copy(farmCenter);offset.copy(farmOffset);
-  const landBtn=document.createElement('button');landBtn.id='landAccess';landBtn.className='world-label';landBtn.textContent='松露小猪牧场';document.body.append(landBtn);landBtn.onclick=pigView;
-  const sheepBtn=document.createElement('button');sheepBtn.id='sheepAccess';sheepBtn.className='world-label';sheepBtn.textContent='绵绵羊场';document.body.append(sheepBtn);sheepBtn.onclick=overview;
+  const landBtn=document.createElement('button');landBtn.id='landAccess';landBtn.className='world-label';landBtn.textContent='香猪';document.body.append(landBtn);landBtn.onclick=pigView;
+  const sheepBtn=document.createElement('button');sheepBtn.id='sheepAccess';sheepBtn.className='world-label';sheepBtn.textContent='绵羊';document.body.append(sheepBtn);sheepBtn.onclick=overview;
   const townBtn=document.createElement('button');townBtn.id='townAccess';nav.append(townBtn);townBtn.onclick=street;
   function street(){
     leave();mode='town';town.show(true);shopZoom=1;
@@ -78,7 +78,7 @@ function installShopView({town,door,portraits,openGuest,openBench,openDisplay,le
   }
   document.addEventListener('pointerdown',e=>{
     skipClick=false;
-    if((mode!=='shop'&&mode!=='guest'&&mode!=='town'&&mode!=='ranches')||pinch||!e.isPrimary||e.button!==0||!sceneSurface(e.target))return;
+    if((mode!=='shop'&&mode!=='guest'&&mode!=='town')||pinch||!e.isPrimary||e.button!==0||!sceneSurface(e.target))return;
     swipe={id:e.pointerId,x:e.clientX,y:e.clientY,progress:0,moved:false};
   },true);
   document.addEventListener('pointermove',e=>{
@@ -125,24 +125,25 @@ function installShopView({town,door,portraits,openGuest,openBench,openDisplay,le
   },{passive:false});
   document.addEventListener('touchend',()=>{pinch=0});document.addEventListener('touchcancel',()=>{pinch=0});
   canvas.addEventListener('pointerdown',e=>{
-    if(mode==='guest'||mode==='shop'||mode==='town'||mode==='ranches'||pinch){e.stopImmediatePropagation();return}
+    if(mode==='guest'||mode==='shop'||mode==='town'||pinch){e.stopImmediatePropagation();return}
     aim(e);
-    if(mode==='pig'){
-     e.stopImmediatePropagation();if(!pigFarm.start(e))startTravel(e);return;
-    }
-    if(mode==='home'&&!drag&&ray.intersectObject(barn,true).length){e.stopImmediatePropagation();openBarn();return}
-    if(mode==='home'&&!drag&&!pick()&&!pickWool(e)){
-     if(homeZoom<=1.01)startTravel(e);
+    if(!drag&&ray.intersectObject(cloud,true).length){e.stopImmediatePropagation();cloudButton.click();return}
+    if(!drag&&pickWool(e))return;
+    if(!drag&&pigFarm.start(e)){e.stopImmediatePropagation();return}
+    if(pick())return;
+    if(!drag&&ray.intersectObject(barn,true).length){e.stopImmediatePropagation();openBarn();return}
+    if(!drag&&(mode==='home'||mode==='pig')){
+     if(mode==='pig'||homeZoom<=1.01)startTravel(e);
      else{pan={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId)}
-     e.stopImmediatePropagation();
     }
+    e.stopImmediatePropagation();
   },true);
   canvas.addEventListener('pointermove',e=>{
     if(travel?.id===e.pointerId){
       travel.progress=clamp(travel.start+(e.clientX-travel.x)/Math.min(innerWidth*.72,620),0,1);
       return;
     }
-    if(mode==='pig'&&pigFarm.move(e))return;
+    if(pigFarm.move(e))return;
     if(!pan||e.pointerId!==pan.id)return;
     const units=(camera.top-camera.bottom)/(innerHeight*camera.zoom);
     scratch.set((pan.x-e.clientX)*units,(e.clientY-pan.y)*units,0).applyQuaternion(camera.quaternion);
@@ -151,7 +152,7 @@ function installShopView({town,door,portraits,openGuest,openBench,openDisplay,le
   });
   canvas.addEventListener('pointerup',e=>{
     if(travel?.id===e.pointerId)stopTravel(true);
-    else if(mode==='pig')pigFarm.finish(e);
+    else pigFarm.finish(e);
     pan=null;
   });
   canvas.addEventListener('pointercancel',()=>{stopTravel(false);pigFarm.cancel();pan=null});
@@ -164,6 +165,7 @@ function installShopView({town,door,portraits,openGuest,openBench,openDisplay,le
   }
   const shopAim=new T.Vector3(shopSite.x+.18,1.94,shopSite.z+.49),shopOffset=new T.Vector3(4,6.2,15);
   const closeOffset=new T.Vector3(1.9,3,15),targetAim=new T.Vector3(),guestPoint=new T.Vector3(),benchPoint=shopSite.table.position.clone().add(new T.Vector3(0,.86,0));
+  const sheepSign=new T.Vector3(3,.6,3.35),pigSign=new T.Vector3(pigCenterX,.6,.65);
   const barnPoint=new T.Vector3(-5.55,1.47,-2.55),pigAim=new T.Vector3(pigCenterX,.55,0);
   const townCenter=new T.Vector3(0,1.05,townZ+.45),townOffset=new T.Vector3(2,16,23);
   const doorPoint=new T.Vector3(shopSite.x,2.42,shopSite.z+.26);
@@ -214,20 +216,21 @@ function installShopView({town,door,portraits,openGuest,openBench,openDisplay,le
     const inTown=mode==='town',commercial=inTown||mode==='shop'||mode==='guest',farmMap=mode==='ranches';town.frame(now,place,px,mode);
     const area=mode==='pig'&&!landUnlocked()?'locked':mode;
     if(hint.dataset.mode!==area){
-      document.querySelector('.brand h1').textContent=mode==='pig'?'松露小猪牧场':commercial?'牧场商业街':farmMap?'牧场全景':'绵绵牧场';
+      document.querySelector('.brand h1').textContent=mode==='pig'?'松露小猪牧场':commercial?'牧场商业街':farmMap?'绵绵大牧场':'绵绵牧场';
       document.querySelector('.brand .eng').textContent=mode==='pig'?'TRUFFLE MEADOW':commercial?'MEADOW MARKET':'WOOLLY MEADOW';
       sun.target.position.x=mode==='pig'?pigCenterX:0;sun.position.x=sun.target.position.x-10;sun.target.position.z=commercial?townZ:0;sun.position.z=sun.target.position.z+8;
-      hint.dataset.mode=area;hint.textContent=area==='locked'?'待开垦 · 向左拖空地返回羊场':mode==='pig'?'点便便堆买香猪 · 拖同款合成 · 点松露收集':inTown?'点店铺经营 · 点羊毛铺看顾客':farmMap?'点牧场进入 · 点商业街去经营':mode==='shop'?'点客人看订单 · 滑动返回商业街':'拖同款羊合成 · 向右拖空地看猪场';
+      hint.dataset.mode=area;hint.textContent=area==='locked'?'待开垦 · 向左拖空地返回羊场':mode==='pig'?'点便便堆买香猪 · 拖同款合成 · 点松露收集':inTown?'点店铺经营 · 点羊毛铺看顾客':farmMap?'拖同款动物合成 · 点仓库选购工具':mode==='shop'?'点客人看订单 · 滑动返回商业街':'拖同款羊合成 · 向右拖空地看猪场';
     }
     document.body.classList.toggle('guest-view',mode==='guest');
     document.body.classList.toggle('pig-view',mode==='pig');
+    document.body.classList.toggle('grazing-view',!commercial);
     document.body.classList.toggle('town-view',inTown||farmMap);
     cloudButton.hidden=mode!=='home';pigFarm.showSource(mode==='pig',place,px);
     townBtn.hidden=mode==='guest'||inTown&&!town.focus;townBtn.textContent=commercial?'商业街全景':'商业街';
     landBtn.hidden=sheepBtn.hidden=!farmMap||!!town.focus;
-    if(!landBtn.hidden){place(landBtn,pigAim,px);place(sheepBtn,home,px)}
+    if(!landBtn.hidden){place(landBtn,pigSign,px);place(sheepBtn,sheepSign,px)}
     nav.querySelector('[data-home]').textContent=farmMap&&!town.focus?'进入羊场':'牧场全景';
-    barnBtn.hidden=mode!=='home';if(!barnBtn.hidden)place(barnBtn,barnPoint,px);
+    barnBtn.hidden=commercial||!!town.focus;if(!barnBtn.hidden)place(barnBtn,barnPoint,px);
     collectorBtn.hidden=mode!=='home'||!machine.visible;
     if(collectorBtn.hidden)rateUntil=0;
     else place(collectorBtn,collectorPoint,px,n=>Math.max(26,n*.98),n=>Math.max(28,n*1.22));
