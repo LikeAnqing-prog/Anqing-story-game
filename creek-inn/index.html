@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e8edce">
+<title>溪湾旅栈试玩</title>
+<link rel="stylesheet" href="./inn.css">
+<script src="./inn.js" defer></script>
+</head>
+<body>
+<main id="game" class="game" aria-label="溪湾旅栈">
+  <header class="hud">
+    <div class="hud-main">
+      <strong class="day" id="day"></strong>
+      <div class="wallet" aria-label="钱包"><i class="leaf-coin" aria-hidden="true"></i><output id="wallet">0</output><small>叶币</small></div>
+      <button class="mini-button" id="helpButton" aria-label="怎么玩">?</button>
+      <button class="mini-button" id="restartButton" aria-label="新开一局">↻</button>
+    </div>
+    <div class="hud-strip">
+      <span id="rent"></span>
+      <span id="guests"></span>
+    </div>
+    <div class="rent-progress" role="progressbar" id="rentProgress" aria-label="本周房租进度"><i></i></div>
+  </header>
+
+  <div class="world">
+    <div class="roof">
+      <img src="./assets/cutaway/roof.jpg" alt="" draggable="false">
+      <button class="wood expand-button" id="expandButton" hidden>扩建上一层</button>
+    </div>
+    <div id="floors" class="floors" aria-label="旅馆客房"></div>
+    <div class="yard" aria-label="旅馆门前">
+      <div class="queue" id="queue"></div>
+      <div class="yard-status">
+        <span id="leaving"></span>
+        <button id="trailPrompt" class="trail-prompt" hidden></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dock">
+    <section id="guestCard" class="guest-card" aria-labelledby="guestName" hidden>
+      <div class="guest-card-head"><h2 id="guestName"></h2><span id="guestStay"></span><button id="guestClose" class="mini-button" aria-label="关闭住客信息">×</button></div>
+      <ul id="guestRules" class="guest-rules" aria-label="住客本领"></ul>
+      <p id="renewEffect" hidden></p>
+      <div id="renewForecast" class="renew-forecast" hidden></div>
+      <button class="wood" id="renew" hidden></button>
+    </section>
+    <div class="dock-actions">
+      <button id="buildingButton" class="tool-button" aria-label="扩建旅馆"><span aria-hidden="true" class="house-icon"></span></button>
+      <button id="journalButton" class="tool-button journal-entry" aria-label="旅客手账"><span aria-hidden="true" class="journal-icon"></span><small>手账</small></button>
+      <button id="settle" class="wood primary settle"><span id="settleText">结算今晚</span><small id="expected"></small></button>
+      <button id="phoneButton" class="tool-button" aria-label="打开手机"><span aria-hidden="true" class="phone-icon"></span></button>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" hidden></div>
+</main>
+
+<dialog id="phone" class="phone" aria-labelledby="phoneTitle">
+  <img src="./assets/phone-frame.png" class="phone-frame" alt="" draggable="false">
+  <div class="phone-screen">
+    <header class="phone-head">
+      <h2 id="phoneTitle">旅馆预约</h2>
+      <button class="mini-button" id="phoneClose" aria-label="关闭手机">×</button>
+    </header>
+    <div class="order-summary"><p id="phoneForecast"></p><p id="phoneStay" hidden></p></div>
+    <details class="phone-earnings" id="phoneEarnings" hidden>
+      <summary><strong>今晚到账</strong><span id="phoneEarned"></span></summary>
+      <ul id="phonePayouts" class="entries"></ul>
+    </details>
+    <div class="order-buttons" id="orderList"></div>
+    <footer class="phone-foot">
+      <p id="phoneEstimate" class="phone-estimate" role="status" hidden></p>
+      <p id="phoneNote"></p>
+      <button class="wood primary" id="phoneDone"></button>
+    </footer>
+  </div>
+</dialog>
+
+<dialog id="journal" class="paper journal" aria-labelledby="journalTitle">
+  <div class="paper-inner">
+    <h2 id="journalTitle">旅客手账</h2>
+    <p id="journalEmpty">旅途中遇到的小故事，都会记在这里。</p>
+    <ol id="journalPages" class="journal-pages" hidden></ol>
+    <section id="birdGift" class="bird-gift" hidden aria-labelledby="birdGiftTitle">
+      <h3 id="birdGiftTitle">候鸟周 · 迎宾香包</h3>
+      <p id="birdGiftNote"></p>
+      <button id="makeSachet" class="wood" type="button">缝一份迎宾香包</button>
+    </section>
+    <div class="dialog-actions"><form method="dialog"><button class="wood primary">回到旅馆</button></form></div>
+  </div>
+</dialog>
+
+<dialog id="receipt" class="paper" aria-labelledby="receiptTitle">
+  <div class="receipt-layout">
+    <header class="receipt-head">
+      <div class="receipt-heading"><h2 id="receiptTitle"></h2><p id="receiptIntro"></p></div>
+      <div class="receipt-hero">
+        <div class="receipt-coins" aria-hidden="true"><i class="leaf-coin"></i><i class="leaf-coin"></i><i class="leaf-coin"></i></div>
+        <div class="receipt-earned"><span>今晚实收</span><p id="receiptTotal"></p></div>
+        <div class="receipt-wallet"><span>钱包余额</span><p id="receiptWallet"></p></div>
+      </div>
+    </header>
+    <div class="receipt-body">
+      <section aria-labelledby="roomReceiptTitle">
+        <h3 id="roomReceiptTitle">房费与小费</h3>
+        <ul id="entries" class="entries"></ul>
+      </section>
+      <section id="receiptStories" hidden aria-labelledby="receiptStoriesTitle">
+        <h3 id="receiptStoriesTitle">手账新记录</h3>
+        <ol id="storyEntries" class="journal-pages"></ol>
+      </section>
+    </div>
+    <footer class="receipt-foot">
+      <p id="receiptNote"></p>
+      <div class="dialog-actions">
+        <button class="wood" id="receiptExpand" hidden></button>
+        <button class="wood" id="receiptJournal" hidden>看旅客手账</button>
+        <button class="wood primary" id="receiptNext"></button>
+      </div>
+    </footer>
+  </div>
+</dialog>
+
+<dialog id="build" class="paper" aria-labelledby="buildTitle">
+  <div class="paper-inner">
+    <h2 id="buildTitle">旅馆布置与扩建</h2>
+    <section class="build-section" aria-labelledby="viewRoomTitle">
+      <div class="build-preview"><span aria-hidden="true" class="view-icon"></span><h3 id="viewRoomTitle">布置观景房</h3></div>
+      <p id="viewRoomStatus"></p>
+      <div id="viewRoomPicker" class="view-room-picker">
+        <label for="viewRoomSelect">选择客房</label>
+        <select id="viewRoomSelect"></select>
+      </div>
+      <button class="wood" id="viewRoomConfirm"></button>
+    </section>
+    <section class="build-section" aria-labelledby="buildFloors">
+      <div class="build-preview"><span aria-hidden="true" class="house-icon"></span><h3 id="buildFloors"></h3></div>
+      <p id="buildRule"></p>
+      <p id="buildRent"></p>
+      <button class="wood" id="buildConfirm"></button>
+    </section>
+    <div class="dialog-actions">
+      <form method="dialog"><button class="wood primary">回到旅馆</button></form>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="help" class="paper" aria-labelledby="helpTitle">
+  <div class="paper-inner">
+    <h2 id="helpTitle">开店指南</h2>
+    <ol>
+      <li>在手机挑选订单。确认后，客人会从门口自动入住。</li>
+      <li>点动物看本领。每天可请一位到期的客人多留一晚，每位客人只能续住一次。续住会延后退房奖励，也会占一间房。</li>
+      <li>结算后查看明晚订单，关手机就进入下一天。每七晚交房租，交清后可以扩建。新增楼层从可接客的第一晚起，每层每晚多收 5 叶币。</li>
+    </ol>
+    <div class="dialog-actions"><form method="dialog"><button class="wood primary">回到旅馆</button></form></div>
+  </div>
+</dialog>
+
+<dialog id="restart" class="paper" aria-labelledby="restartTitle">
+  <div class="paper-inner">
+    <h2 id="restartTitle">新开一局？</h2>
+    <p>会从第一周的四间房重新开始。</p>
+    <div class="dialog-actions">
+      <form method="dialog"><button class="wood">继续这一局</button></form>
+      <button class="wood primary" id="restartConfirm">重新开张</button>
+    </div>
+  </div>
+</dialog>
+</body>
+</html>
