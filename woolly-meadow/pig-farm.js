@@ -5,6 +5,8 @@ const pigPlots=[
  {capacity:8,period:4000,price:200},
  {capacity:10,period:3000,price:0}
 ];
+// Barn tools multiply the interval already earned through pasture expansion.
+function pigDigPeriod(plotLevel,bellLevel){return pigPlots[plotLevel-1].period*[1,.8,.6][bellLevel]}
 const pigBreeds=[
  {name:'芝麻汤圆香猪',patch:0x403b42},{name:'栗子铃铛香猪',patch:0x865f4e},
  {name:'松露芽芽香猪',patch:0x66664f},{name:'蜂蜜皇冠香猪',patch:0xb27c4b},
@@ -15,7 +17,7 @@ function pigSize(level){return size({level})}
 function newPiglet(i,level=0){
  return {level,x:-3.2+(i%4)*1.95,z:-.5+Math.floor(i/4)*1.15,heading:.16+i*.35};
 }
-function createPigFarm({state,collectTruffle,onMerge,buyPig}){
+function createPigFarm({state,collectTruffle,onMerge,buyPig,openWarehouse}){
  const pen=group(pigCenterX,0,0,scene),animals=[],buttons=new Map();
  pen.name="松露坡";
  const soil=0xb0876c,cream=0xf8dfb7,wood=0xaf8460;
@@ -38,6 +40,17 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig}){
    const roof=box(hut,0xa45f4e,side*.67,1.74,0,1.59,.17,2.14);roof.rotation.z=-side*.32;
    for(let i=0;i<5;i++){const tile=box(hut,i%2?0xbe8067:0xc88b70,side*.67,1.85,-.85+i*.42,1.59,.078,.39);tile.rotation.z=-side*.32}
  }
+ const bells=group(.81,1.51,.98,hut);
+ for(const x of [-.11,.11]){
+  const bell=group(x,0,0,bells);bell.rotation.z=x;
+  box(bell,0x6d8c79,0,-.08,0,.046,.23,.044);
+  oval(bell,0xe5b655,0,-.22,0,.082,.105,.078);
+  part(bell,pole,0xf2cb70,0,-.28,0,.20,.05,.18);
+  oval(bell,0x815c32,0,-.315,0,.028,.034,.028);
+ }
+ const warehouse=document.createElement('button');warehouse.className='world-label';warehouse.id='pigWarehouse';
+ warehouse.textContent='猪仓库';warehouse.hidden=true;warehouse.onclick=openWarehouse;document.body.append(warehouse);
+ const warehousePoint=hut.getWorldPosition(new T.Vector3()).add(new T.Vector3(0,1.45,.6));
  for(const [x,z,s] of [[2.6,-1.7,1.45],[3.9,-1.5,1.1],[2.5,-.9,.8]])oval(pen,0xa7886c,x,.075,z,s,.044,s*.67);
  for(let i=0;i<46;i++){
   const x=Math.sin(i*6.73)*5.86,z=Math.cos(i*9.11)*3.6;
@@ -178,6 +191,7 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig}){
  const projected=new T.Vector3();
  function sync(){
   const herd=state().herd,s=state();
+  bells.visible=s.pigBell>0;bells.children[1].visible=s.pigBell===2;
   pile.visible=herd.length>0;basket.visible=herd.length>0&&s.pigCollector>0;
   trough.visible=herd.length>0&&s.pigLevel>=2;annex.visible=herd.length>0&&s.pigLevel>=3;
   for(let i=animals.length-1;i>=0;i--){
@@ -195,7 +209,7 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig}){
  let nextPickup=0;
  function tick(now){
   const s=state();if(!s.herd.length)return false;
-  const period=pigPlots[s.pigLevel-1].period;
+  const period=pigDigPeriod(s.pigLevel,s.pigBell);
   let changed=false;
   for(const a of animals){
    const pig=a.data;
@@ -242,7 +256,11 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig}){
  }
  function start(e){
   if(held||ghost)return true;
-  aim(e);const a=hit();if(!a)return false;
+  aim(e);const a=hit();
+  if(!a){
+   if(!state().herd.length||!ray.intersectObject(hut,true).length)return false;
+   openWarehouse();return true;
+  }
   ray.ray.intersectPlane(surface,floorPoint);
   held={a,id:e.pointerId,x:a.data.x,z:a.data.z,dx:a.data.x-(floorPoint.x-pen.position.x),dz:a.data.z-floorPoint.z};
   canvas.setPointerCapture(e.pointerId);canvas.style.cursor='grabbing';return true;
@@ -265,7 +283,7 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig}){
   if(!move(e))return false;
   const a=held.a,target=over,d=a.data;
   if(target&&compatible(d,target.data)){
-   const herd=state().herd,next={...target.data,level:d.level+1,heading:.22,digDue:Date.now()+pigPlots[state().pigLevel-1].period};
+   const herd=state().herd,next={...target.data,level:d.level+1,heading:.22,digDue:Date.now()+pigDigPeriod(state().pigLevel,state().pigBell)};
    const from=a.root.position.clone();herd.splice(herd.indexOf(d),1);herd[herd.indexOf(target.data)]=next;
    sync();pen.add(a.root);ghost={root:a.root,scale:a.root.scale.x,from,to:target.root.position.clone(),started:performance.now()};
    animals.find(animal=>animal.data===next).bounce=1;onMerge(next.level);
@@ -334,6 +352,8 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig}){
   }
  }
  function showSource(visible,place,px){
+  warehouse.hidden=!visible||!pile.visible;
+  if(!warehouse.hidden)place(warehouse,warehousePoint,px);
   basketButton.hidden=!visible||!basket.visible;
   if(!basketButton.hidden){
    projected.set(pigCenterX+basket.position.x,.4,basket.position.z);
