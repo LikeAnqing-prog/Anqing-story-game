@@ -35,7 +35,7 @@ function createTown({visitMarket,state,recipes,productImage,commit}){
  panel.setAttribute('aria-labelledby','townTitle');
  panel.innerHTML='<div class="awning"></div><div class="shop-head"><h2 id="townTitle"></h2><button data-close>回街上</button></div><div class="town-content"></div>';
  document.body.append(panel);
- const world=createTownWorld();world.root.visible=false;
+ const world=createTownWorld(()=>state().town,commit);world.root.visible=false;
  let focus=null,batch=1,feedback='',signature='';
  const markers={},anchor=new T.Vector3();
  for(const [id,site] of Object.entries(townSites)){
@@ -50,6 +50,7 @@ function createTown({visitMarket,state,recipes,productImage,commit}){
   panel.showModal();render();
  }
  function show(value){
+  world.staff.cancel();
   camera.layers.set(value?1:0);focus=null;feedback='';
   world.root.visible=value;world.farms.visible=!value;world.sync(state().town);
   Object.values(markers).forEach(b=>b.hidden=true);
@@ -195,5 +196,5 @@ function createTown({visitMarket,state,recipes,productImage,commit}){
   }else return;
   commit();
  });
- return {open,show,frame,refresh,tick,get focus(){return focus},overview(){focus=null}};
+ return {open,show,frame,refresh,tick,staff:world.staff,get focus(){return focus},overview(){focus=null}};
 }

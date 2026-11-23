@@ -41,7 +41,7 @@ function townAnimal(horse,i){
  }
  root.scale.setScalar(.90);return {root,legs,head};
 }
-function createTownWorld(){
+function createTownWorld(getTown,commit){
  const root=group(0,0,townZ,scene),farms=group(0,0,0,scene),village=new T.Group();root.add(village);
  const wood=0xb78c63,cream=0xf2dcb4,green=0x699786;
  function batch(g){const mesh=batchScenery(g);g.clear();g.add(mesh)}
@@ -71,6 +71,7 @@ function createTownWorld(){
   box(g,cream,0,.56,1.14,2.32,.13,.57);
  }
  const working={},animals={cow:[],horse:[]},covers={};
+ const staff=createFieldWorkers(farms,animals,getTown,commit);
  for(const [id,site] of Object.entries(townSites)){
   const base=group(site.x,0,site.z,site.farm?farms:village),live=group(site.x,0,site.z,site.farm?farms:root);
   working[id]=live;
@@ -130,6 +131,7 @@ function createTownWorld(){
  }
  const cart=group(0,.1,0,root),cartHorse=townAnimal(true,0);cart.add(cartHorse.root);
  cartHorse.root.position.z=1.24;cartHorse.root.scale.setScalar(.73);
+ const courier=makeFieldWorker();cart.add(courier.root);courier.root.scale.setScalar(.79);courier.root.position.z=1.24;
  const deck=group(0,0,0,cart);
  box(deck,wood,0,.52,0,.91,.24,1.16);box(deck,0x8fa698,0,.77,0,.72,.36,.88);
  for(const side of [-1,1]){
@@ -144,17 +146,22 @@ function createTownWorld(){
  function sync(state){
   racks.forEach((rack,i)=>rack.visible=i<state.depot);
   trip=state.shipment;cart.visible=state.horse>0;
-  cartHorse.root.visible=!!trip&&!trip.arrived;
+  const pairs=state.workers||[],onRoad=!!trip&&!trip.arrived;
+  let hauler=onRoad?state.horse-1:-1;
+  if(onRoad){for(let i=hauler;i>=0;i--)if(!pairs.some(p=>p.horse===i)){hauler=i;break}}
+  courier.root.visible=onRoad&&pairs.some(p=>p.horse===hauler);
+  cartHorse.root.visible=onRoad&&!courier.root.visible;
   for(const id of Object.keys(working)){
    const count=id==='market'?1:state[id];
    working[id].visible=count>0;if(covers[id])covers[id].visible=!count;
    if(!animals[id])continue;
    while(animals[id].length<count){const a=townAnimal(id==='horse',animals[id].length);const patch=grazingPatches[Math.floor(Math.random()*grazingPatches.length)];a.root.position.set(patch.x+Math.random()*.6,.09,patch.z+Math.random()*.6);a.root.name=id;farms.add(a.root);animals[id].push(a)}
    animals[id].forEach((a,i)=>{
-    const hauling=id==='horse'&&i===count-1&&trip&&!trip.arrived;
-    a.root.visible=i<count&&!hauling;
+    const hauling=id==='horse'&&i===hauler;
+    a.root.visible=i<count&&!hauling&&!pairs.some(p=>p[id]===i);
    });
   }
+  staff.sync(state,hauler);
  }
  function animate(ms){
   const t=ms*.001,dt=Math.min(.12,(ms-lastFrame)/1000);lastFrame=ms;
@@ -163,11 +170,13 @@ function createTownWorld(){
   cart.position.set(moving?7.9-16*f:7.9,.09+(moving?.023*Math.abs(Math.sin(t*5)):0),2.35);cart.rotation.y=-Math.PI/2;
   cartHorse.legs.forEach((leg,j)=>leg.rotation.x=.25*Math.sin(t*5+(j===0||j===3?0:Math.PI)));
   for(const [id,herd] of Object.entries(animals))herd.forEach((a,i)=>{
-   if(!a.root.visible)return;
+   if(!a.root.visible||staff.busy(a))return;
    const pace=graze(a,a.root.position,dt,(id==='horse'?1.32:.9)+i*.07);
    a.head.rotation.x=.10*Math.sin(t*1.7+i)+(id==='cow'?.20:0);
    a.legs.forEach((leg,j)=>leg.rotation.x=pace*.21*Math.sin(a.gait.stride+(j===0||j===3?0:Math.PI)));
   });
+  staff.animate(ms,dt);
+  if(courier.root.visible)courier.legs.forEach((leg,j)=>leg.rotation.x=.31*Math.sin(t*5+j*Math.PI));
  }
- return {root,farms,sync,animate};
+ return {root,farms,sync,animate,staff};
 }

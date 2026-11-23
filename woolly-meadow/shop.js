@@ -80,7 +80,7 @@ function migrate(){
  }
 }
 migrate();
-otherHerdStats=()=>({animals:shop.herd.length+shop.town.cow+shop.town.horse,merges:shop.pigMerges});
+otherHerdStats=()=>({animals:shop.herd.length+shop.town.cow+shop.town.horse-2*(shop.town.workers?.length||0),merges:shop.pigMerges+(shop.town.workerMerges||0)});
 const portraits=Object.fromEntries(Object.keys(buyers).map(kind=>[kind,makeVisitor(kind)]));
 for(const [kind,person] of Object.entries(portraits)){person.name=buyers[kind].name;shopSite.guests.add(streetModel(person))}
 const walkIns=new Map();
