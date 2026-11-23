@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#e8edce">
 <title>溪湾旅栈试玩</title>
-<link rel="stylesheet" href="./inn.css">
-<script src="./inn.js" defer></script>
+<link rel="stylesheet" href="./inn.css?v=advance-booking">
+<script src="./inn.js?v=advance-booking" defer></script>
 </head>
 <body>
 <main id="game" class="game" aria-label="溪湾旅栈">
@@ -34,6 +34,7 @@
       <div class="queue" id="queue"></div>
       <div class="yard-status">
         <span id="leaving"></span>
+        <button id="appointmentPrompt" class="trail-prompt" hidden></button>
         <button id="trailPrompt" class="trail-prompt" hidden></button>
       </div>
     </div>
@@ -65,10 +66,12 @@
       <button class="mini-button" id="phoneClose" aria-label="关闭手机">×</button>
     </header>
     <div class="order-summary"><p id="phoneForecast"></p><p id="phoneStay" hidden></p></div>
+    <div id="phoneHighlights" class="phone-highlights" hidden></div>
     <details class="phone-earnings" id="phoneEarnings" hidden>
       <summary><strong>今晚到账</strong><span id="phoneEarned"></span></summary>
       <ul id="phonePayouts" class="entries"></ul>
     </details>
+    <section id="phoneCommissions" aria-label="提前预约" hidden></section>
     <div class="order-buttons" id="orderList"></div>
     <footer class="phone-foot">
       <p id="phoneEstimate" class="phone-estimate" role="status" hidden></p>
@@ -81,6 +84,11 @@
 <dialog id="journal" class="paper journal" aria-labelledby="journalTitle">
   <div class="paper-inner">
     <h2 id="journalTitle">旅客手账</h2>
+    <section class="business-journal" aria-labelledby="partnerTitle">
+      <h3 id="partnerTitle">旅馆客源</h3>
+      <p id="commissionRecord"></p>
+      <ul id="partnerList"></ul>
+    </section>
     <p id="journalEmpty">旅途中遇到的小故事，都会记在这里。</p>
     <ol id="journalPages" class="journal-pages" hidden></ol>
     <section id="birdGift" class="bird-gift" hidden aria-labelledby="birdGiftTitle">
@@ -104,7 +112,7 @@
     </header>
     <div class="receipt-body">
       <section aria-labelledby="roomReceiptTitle">
-        <h3 id="roomReceiptTitle">房费与小费</h3>
+        <h3 id="roomReceiptTitle">收入明细</h3>
         <ul id="entries" class="entries"></ul>
       </section>
       <section id="receiptStories" hidden aria-labelledby="receiptStoriesTitle">
@@ -135,6 +143,15 @@
       </div>
       <button class="wood" id="viewRoomConfirm"></button>
     </section>
+    <section class="build-section" aria-labelledby="restRoomTitle">
+      <div class="build-preview"><span aria-hidden="true" class="rest-icon"></span><h3 id="restRoomTitle">布置歇脚房</h3></div>
+      <p id="restRoomStatus"></p>
+      <div id="restRoomPicker" class="view-room-picker">
+        <label for="restRoomSelect">选择歇脚房</label>
+        <select id="restRoomSelect"></select>
+      </div>
+      <button class="wood" id="restRoomConfirm"></button>
+    </section>
     <section class="build-section" aria-labelledby="buildFloors">
       <div class="build-preview"><span aria-hidden="true" class="house-icon"></span><h3 id="buildFloors"></h3></div>
       <p id="buildRule"></p>
@@ -152,6 +169,7 @@
     <h2 id="helpTitle">开店指南</h2>
     <ol>
       <li>在手机挑选订单。确认后，客人会从门口自动入住。</li>
+      <li>双人单可提前预约。留够房间，到店当晚会自动选中这一单。两位客人退房时会给委托谢礼。</li>
       <li>点动物看本领。每天可请一位到期的客人多留一晚，每位客人只能续住一次。续住会延后退房奖励，也会占一间房。</li>
       <li>结算后查看明晚订单，关手机就进入下一天。每七晚交房租，交清后可以扩建。新增楼层从可接客的第一晚起，每层每晚多收 5 叶币。</li>
     </ol>
