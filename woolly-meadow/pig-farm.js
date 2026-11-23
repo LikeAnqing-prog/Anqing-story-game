@@ -303,7 +303,7 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig}){
    a.eyes.forEach(eye=>eye.scale.y=1-.92*Math.max(0,1-Math.abs((t+i)%3.4-.12)/.105));
    a.ears.forEach((ear,j)=>ear.rotation.x=-.17+.11*Math.sin(t*4.2+i+j));
    body.rotation.x=.055*Math.sin(t*3+i)+.13*Math.max(0,Math.sin(t*.52+i));
-   legs.forEach((leg,j)=>leg.rotation.x=walk*.40*Math.sin(t*5+i+(j===0||j===3?0:Math.PI)));
+   legs.forEach((leg,j)=>leg.rotation.x=walk*.40*Math.sin((a.gait?.stride||0)+(j===0||j===3?0:Math.PI)));
    a.halo.visible=!!held&&!isHeld&&held.a.data.level===d.level&&d.level<pigBreeds.length-1;
    a.halo.position.set(d.x,.088,d.z);a.halo.scale.setScalar(k*(a===over?1.22:1));
   });

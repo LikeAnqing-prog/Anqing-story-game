@@ -55,10 +55,18 @@ function clearWalk(from,to){
  });
 }
 const patchLinks=grazingPatches.map(p=>grazingPatches.filter(q=>p!==q&&clearWalk(p,q)));
-function planWalk(from){
- const opposite=grazingPatches.filter(p=>(p.x-fieldX)*(from.x-fieldX)<=0&&Math.abs(p.x-from.x)>7);
- const pool=opposite.length?opposite:grazingPatches,dest=pool[Math.floor(Math.random()*pool.length)];
- const goal={x:dest.x+(Math.random()-.5)*.8,z:dest.z+(Math.random()-.5)*.8};
+function pickGrass(from,heading){
+ // Nearby forage, a change of direction, or an excursion anywhere in the meadow.
+ for(let i=0;i<12;i++){
+  const roll=Math.random(),angle=heading+(Math.random()-.5)*Math.PI*(roll<.5?1.25:2);
+  const radius=roll<.5?.8+Math.random()*3.3:3.5+Math.random()*6;
+  const goal=roll<.74?{x:from.x+Math.sin(angle)*radius,z:from.z+Math.cos(angle)*radius}:
+   {x:grazing.left+Math.random()*(grazing.right-grazing.left),z:grazing.back+Math.random()*(grazing.front-grazing.back)};
+  if(goal.x>grazing.left&&goal.x<grazing.right&&goal.z>grazing.back&&goal.z<grazing.front&&clearWalk(goal,goal))return goal;
+ }
+ return grazingPatches[Math.floor(Math.random()*grazingPatches.length)];
+}
+function planWalk(from,goal){
  if(clearWalk(from,goal))return [goal];
  const nearest=[...grazingPatches].sort((a,b)=>Math.hypot(a.x-from.x,a.z-from.z)-Math.hypot(b.x-from.x,b.z-from.z));
  const first=nearest.find(p=>clearWalk(from,p))||nearest[0],queue=[[first]],seen=new Set([first]);
@@ -69,19 +77,52 @@ function planWalk(from){
  }
  return [first];
 }
-function graze(actor,pos,dt,pace,originX=0){
- if(actor.rest>0){actor.rest-=dt;return 0}
- const x=pos.x+originX;
- if(!actor.route?.length)actor.route=planWalk({x,z:pos.z});
- const goal=actor.route[0],dx=goal.x-x,dz=goal.z-pos.z,distance=Math.hypot(dx,dz);
- const step=Math.min(pace*dt,distance);
- if(distance>.001){
-  const heading=Math.atan2(dx,dz),rotation=actor.root.rotation;
-  rotation.y+=Math.atan2(Math.sin(heading-rotation.y),Math.cos(heading-rotation.y))*Math.min(1,dt*6);
-  pos.x+=step*dx/distance;pos.z+=step*dz/distance;
+function meanderingRoute(from,heading){
+ const route=[];
+ for(const end of planWalk(from,pickGrass(from,heading))){
+  const dx=end.x-from.x,dz=end.z-from.z,length=Math.hypot(dx,dz);
+  const bend=(Math.random()-.5)*Math.min(5,length*.86),peak=.25+Math.random()*.5;
+  const cx=T.MathUtils.clamp(from.x+dx*peak-dz*bend/(length||1),grazing.left,grazing.right);
+  const cz=T.MathUtils.clamp(from.z+dz*peak+dx*bend/(length||1),grazing.back,grazing.front);
+  const count=Math.max(1,Math.ceil(length/.8)),arc=[];
+  let previous=from;
+  for(let j=1;j<=count;j++){
+   const t=j/count,u=1-t,point={x:u*u*from.x+2*u*t*cx+t*t*end.x,z:u*u*from.z+2*u*t*cz+t*t*end.z};
+   if(!clearWalk(previous,point)){arc.length=0;break}
+   arc.push(point);previous=point;
+  }
+  route.push(...(arc.length?arc:[end]));from=end;
  }
- if(distance<=step+.001){actor.route.shift();if(!actor.route.length)actor.rest=.6+Math.random()*1.8}
- return pace;
+ return route;
+}
+function graze(actor,pos,dt,pace,originX=0){
+ if(!actor.gait){
+  actor.gait={speed:0,multiplier:1,changeIn:0,stride:Math.random()*Math.PI*2};
+  actor.rest=Math.max(actor.rest||0,Math.random()**2*3.7);
+ }
+ const gait=actor.gait;
+ if(actor.rest>0){actor.rest-=dt;return 0}
+ const rotation=actor.root.rotation;
+ if(!actor.route?.length){actor.route=meanderingRoute({x:pos.x+originX,z:pos.z},rotation.y);gait.changeIn=0}
+ gait.changeIn-=dt;
+ if(gait.changeIn<=0){
+  gait.changeIn=1.2+Math.random()*3.6;
+  gait.multiplier=.62+Math.random()*.79;
+  if(gait.speed>.22&&Math.random()<.22){actor.rest=.4+Math.random()**2*3.3;gait.speed=0;return 0}
+ }
+ const goal=actor.route[0],dx=goal.x-pos.x-originX,dz=goal.z-pos.z,distance=Math.hypot(dx,dz);
+ const turn=Math.atan2(Math.sin(Math.atan2(dx,dz)-rotation.y),Math.cos(Math.atan2(dx,dz)-rotation.y));
+ const corner=Math.max(.26,Math.cos(turn)),arrival=actor.route.length===1?Math.min(1,.3+distance*1.3):1;
+ gait.speed+=(pace*gait.multiplier*corner*arrival-gait.speed)*Math.min(1,dt*3.5);
+ rotation.y+=turn*Math.min(1,dt*5);
+ const step=Math.min(gait.speed*dt,distance);
+ if(distance>.0001){pos.x+=step*dx/distance;pos.z+=step*dz/distance}
+ if(distance<=step+.0001){
+  actor.route.shift();
+  if(!actor.route.length){gait.speed=0;actor.rest=.15+Math.random()**2*4.9}
+ }
+ gait.stride+=step*6;
+ return dt>0?step/dt:0;
 }
 const soilLayers=[meadowSlab(33.05,21.35,.66,.95,0xc79870,-1.1),meadowSlab(33.15,21.45,.67,.12,0xb6a26e,-.27)];
 const meadow=meadowSlab(33.22,21.51,.69,.15,0xffffff,-.16);
@@ -535,7 +576,7 @@ let updateSceneView=null;
 function frame(now){requestAnimationFrame(frame);let dt=Math.min(.12,(now-prev)/1000);prev=now;time+=dt;if(updateSceneView)updateSceneView(now);updateCloud(dt,now);
 for(const s of flock){if(s.fall){fall(s,dt);continue}const held=drag?.s===s,joining=join&&(join.a===s||join.b===s);let walk=0;
 if(held||joining||target===s)s.route=null;else walk=graze(s,s.root.position,dt,s.pace);
-s.step+=dt*(walk?6:2);s.legs.forEach((g,i)=>g.rotation.x=walk*Math.sin(s.step+(i===0||i===3?0:Math.PI))*.68);
+s.step+=dt*(walk?walk*6:1.6);s.legs.forEach((g,i)=>g.rotation.x=walk*Math.sin(s.step+(i===0||i===3?0:Math.PI))*.68);
 s.lift+=((held?.95:0)-s.lift)*Math.min(1,dt*13);s.root.position.y=.07+s.lift+Math.abs(Math.sin(s.step))*walk*.12;
 s.bounce=Math.max(0,s.bounce-dt*1.12);const q=s.bounce*.3*Math.cos((1.15-s.bounce)*19),k=size(s);s.root.scale.set(k*(1+q-held*.07),k*(1-q+held*.12),k*(1+q));s.head.rotation.x=-.24+Math.sin(s.step*.8)*.055; s.halo.visible=!!drag&&compatible(drag.s,s)&&s!==target;if(s.halo.visible){s.halo.position.set(s.root.position.x,.085,s.root.position.z);s.halo.scale.setScalar(k)}}
 if(join){const j=join;j.t+=dt;const t=Math.min(1,j.t/.25);j.a.root.position.lerpVectors(j.start,j.b.root.position,t*t);j.a.root.scale.multiplyScalar(1-.45*t);j.b.body.scale.set(1+.19*t,1-.21*t,1+.14*t);if(t===1){join=null;fuse(j.a,j.b)}}

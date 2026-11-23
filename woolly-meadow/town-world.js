@@ -166,7 +166,7 @@ function createTownWorld(){
    if(!a.root.visible)return;
    const pace=graze(a,a.root.position,dt,(id==='horse'?1.32:.9)+i*.07);
    a.head.rotation.x=.10*Math.sin(t*1.7+i)+(id==='cow'?.20:0);
-   a.legs.forEach((leg,j)=>leg.rotation.x=pace*.21*Math.sin(t*3.3+i+(j===0||j===3?0:Math.PI)));
+   a.legs.forEach((leg,j)=>leg.rotation.x=pace*.21*Math.sin(a.gait.stride+(j===0||j===3?0:Math.PI)));
   });
  }
  return {root,farms,sync,animate};
