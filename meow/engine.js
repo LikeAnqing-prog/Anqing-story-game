@@ -10,7 +10,7 @@
     {name:'春风',icon:3,type:'净化',desc:'就绪时清除一位伙伴的毒、冰冻与定身，立即恢复 8 生命，并在其接下来两次行动前各恢复 8；冷却两次自身行动。'},
     {name:'鼓舞',icon:15,type:'辅助',desc:'就绪时全队下两次攻击行动伤害提高 25%，移动和施放辅助不消耗次数，不叠加；冷却两次自身行动。'},
     {name:'推掌',icon:10,type:'位移',desc:'就绪时出爪后将相邻敌人推远一格；落点被挡时额外造成 8 点伤害，护盾可吸收。冷却两次自身行动。'},
-    {name:'藤缚',icon:5,type:'限制',desc:'攻击射程 3 格；就绪时造成 60% 攻击伤害并禁止敌人移动两次行动，仍可攻击与施法；冷却两次自身行动。'}
+    {name:'藤缚',icon:5,type:'限制',desc:'沿同排或同列攻击，射程 3 格；就绪时造成 60% 攻击伤害并禁止敌人移动两次行动，仍可攻击与施法；冷却两次自身行动。'}
   );
   ['连击','护盾','治愈','毒爪','迅捷','反击'].forEach((_,i)=>SKILLS[i].type=['输出','保护','治疗','持续','机动','反制'][i]);
   const MUTATIONS=[{name:'叶芽尾',icon:3,desc:'生命额外增加 15'},{name:'星星印',icon:15,desc:'攻击额外增加 3'},{name:'风铃尾',icon:4,desc:'速度额外增加 3'}];
@@ -26,6 +26,10 @@
   );
   const STAGES=['竹林小径','石桥听雨','苔阶深处','荷塘夜话','松风渡口','青瓦山门','云间茶亭','桃林古道','月下庭院','山顶见晴'];
   const FORMATION=[{x:2,y:3},{x:0,y:4},{x:4,y:4}];
+  function deployment(s){const used=new Set(),result=[],saved=s.deployment||[];for(const id of s.team){const p=saved.find(p=>p.id===id);if(p&&Number.isInteger(p.x)&&p.x>=0&&p.x<5&&[3,4].includes(p.y)&&!used.has(p.x+','+p.y)){result.push({...p});used.add(p.x+','+p.y);}}
+    for(const [i,id] of s.team.entries()){if(result.some(p=>p.id===id))continue;const spots=[FORMATION[i],...FORMATION,...[3,4].flatMap(y=>Array.from({length:5},(_,x)=>({x,y})))].filter(Boolean),p=spots.find(p=>!used.has(p.x+','+p.y));result.push({id,...p});used.add(p.x+','+p.y);}return s.team.map(id=>result.find(p=>p.id===id));}
+  function syncDeployment(s){if(!s.deployment)return;const places=deployment(s);places.sort((a,b)=>a.y-b.y||Math.abs(a.x-2)-Math.abs(b.x-2)||s.team.indexOf(a.id)-s.team.indexOf(b.id));s.deployment=places;s.team=places.map(p=>p.id);}
+  function placeCat(s,id,x,y){if(!s.team.includes(id)||!Number.isInteger(x)||x<0||x>=5||![3,4].includes(y))throw Error('请把出战猫放在我方下方两排。');const places=deployment(s),from=places.find(p=>p.id===id),other=places.find(p=>p.x===x&&p.y===y&&p.id!==id);if(other){other.x=from.x;other.y=from.y;}from.x=x;from.y=y;s.deployment=places;syncDeployment(s);return deployment(s);}
   const key=c=>`${c.color}-${c.pattern}-${c.ears}`;
   function initial(){return {version:2,coins:300,nextId:3,cats:[{id:1,name:'橘团',color:0,pattern:1,ears:0,hp:116,atk:26,speed:12,skill:0,gen:1,parents:[],mutation:null},{id:2,name:'云朵',color:1,pattern:2,ears:1,hp:140,atk:22,speed:10,skill:1,gen:1,parents:[],mutation:null}],team:[1,2],cleared:[],battles:0,pendingReveal:null,bred:0,seen:['0-1-0','1-2-1']};}
   function validate(s){
@@ -53,6 +57,7 @@
     if(s.studyXP!==undefined&&(!Number.isInteger(s.studyXP)||s.studyXP<0||s.studyXP>10000))return false;
     if(s.patrolAt!==undefined&&(!Number.isFinite(s.patrolAt)||s.patrolAt<0))return false;
     if(s.failureGrants!==undefined&&(!s.failureGrants||typeof s.failureGrants!=='object'||Array.isArray(s.failureGrants)||Object.entries(s.failureGrants).some(([k,v])=>!/^([1-9]|10)$/.test(k)||!Number.isInteger(v)||v<0||v>2)))return false;
+    if(s.deployment!==undefined&&(!Array.isArray(s.deployment)||s.deployment.length>3||new Set(s.deployment.map(p=>p?.id)).size!==s.deployment.length||new Set(s.deployment.map(p=>p?.x+','+p?.y)).size!==s.deployment.length||s.deployment.some(p=>!p||!s.cats.some(c=>c.id===p.id)||!Number.isInteger(p.x)||p.x<0||p.x>=5||![3,4].includes(p.y))))return false;
     const ids=new Set();
     for(const c of s.cats){if(!Number.isSafeInteger(c.id)||c.id<=0||!Growth.valid(c)||ids.has(c.id)||typeof c.name!=='string'||c.name.length>16||![0,1,2].includes(c.color)||![0,1,2].includes(c.pattern)||![0,1].includes(c.ears)||!Number.isInteger(c.skill)||c.skill<0||c.skill>=SKILLS.length||![c.hp,c.atk,c.speed,c.gen].every(v=>Number.isFinite(v)&&v>0)||!Array.isArray(c.parents)||c.parents.length>2||!(c.mutation===null||Number.isInteger(c.mutation)&&c.mutation>=0&&c.mutation<MUTATIONS.length))return false;ids.add(c.id);}
     if(s.breedingParents!==undefined&&(!Array.isArray(s.breedingParents)||s.breedingParents.length!==2||new Set(s.breedingParents).size!==2||!s.breedingParents.every(id=>ids.has(id))))return false;
@@ -90,7 +95,7 @@
     migrate(s);if(!['story','trail','challenge'].includes(mode))throw Error('试炼类型不正确。');if(mode==='trail'&&!s.cleared.includes(10))throw Error('通关第 10 关后开启远行。');if(mode==='trail')level=10;const challenge=mode==='challenge'?Objectives.challenges.find(c=>c.id===challengeId):null;if(mode==='challenge'){if(!challenge||!s.cleared.includes(challenge.level))throw Error('先通关对应关卡，再进行这项挑战。');level=challenge.level;const missing=Objectives.challengeSetup(s,challenge.id);if(missing.length)throw Error(missing.join('；'));}
     const team=s.team.map(id=>s.cats.find(c=>c.id===id)).filter(Boolean);if(team.length!==3)throw Error('请选择三只猫出战。');
     const max=Math.min(10,(s.cleared.length?Math.max(...s.cleared):0)+1);if(!Number.isInteger(level)||level<1||level>max)throw Error('先完成前面的试炼。');
-    const units=team.map((base,i)=>{const c=trained(base);return {...c,uid:'p'+i,side:0,life:c.hp,maxHp:c.hp,shield:(i===0?20:0)+Growth.shield(c),poison:0,isVanguard:i===0,...FORMATION[i]};});
+    const places=deployment(s);const units=team.map((base,i)=>{const c=trained(base);return {...c,uid:'p'+i,side:0,life:c.hp,maxHp:c.hp,shield:(i===0?20:0)+Growth.shield(c),poison:0,isVanguard:i===0,...places[i]};});
     const rule=encounter(s,level,mode),floor=mode==='trail'?rule.floor:0;
     if(s.tactic==='guard')units[0].shield+=15;
     for(let i=0;i<3;i++){let hp=74+level*12+floor*7;units.push({id:-i-1,uid:'e'+i,side:1,name:['竹团','灰灰','阿斑'][i],color:(i+level)%3,pattern:i,ears:i%2,skill:rule.skills[i],hp,life:hp,maxHp:hp,atk:11+level*3+Math.floor(floor/2),speed:6+level+i+Math.floor(floor/5),shield:rule.shield||0,poison:0,mutation:null,rareGene:null,x:i*2,y:0});}
@@ -121,7 +126,7 @@
     if((actor.skill===1||actor.skill===2)&&b.round%3===1&&(actor.skill===1||alive(actor.side).some(u=>u.life<u.maxHp))){const friend=alive(actor.side).sort((a,z)=>a.life/a.maxHp-z.life/z.maxHp)[0];hitTarget=friend;const bonus=(actor.side===0&&tactic==='balanced'?1.15:1)*Growth.support(actor);if(actor.skill===1){amount=Math.round(actor.atk*1.3*bonus);friend.shield+=amount;kind='shield';log(actor.name+'为'+friend.name+'添上 '+amount+' 护盾');}else{amount=Math.min(friend.maxHp-friend.life,Math.round((actor.atk*1.3+12)*bonus));friend.life+=amount;kind='heal';log(actor.name+'为'+friend.name+'恢复 '+amount+' 生命');}}
     else{
       path=approach(b,actor,target);if(path.length){Object.assign(actor,path.at(-1));if(actor.mutation===3){actor.springReady=true;log(actor.name+'的弹簧腿蓄好劲了');}if(actor.mutation===5&&actor.poison){actor.poison=0;effects.push({uid,kind:'cleanse',amount:0});log(actor.name+'拖尾一走，扫掉剩余毒伤');}}
-      if(Number.isInteger(actor.x)&&(distance(actor,target)>attackRange(actor)||!lineClear(b,actor,target))){log(actor.name+(path.length?'接近敌人':'等待通路'));return record(target,0,'move');}
+      if(Number.isInteger(actor.x)&&(!canAttack(b,actor,target))){log(actor.name+(path.length?'接近敌人':'等待通路'));return record(target,0,'move');}
       const special=ready&&[7,10,11].includes(actor.skill),mult=special&&actor.skill===7?.5:special&&actor.skill===11?.6:1;if(special)cast();const furyBonus=actor.fury>0?1.25:1;if(actor.fury>0)actor.fury--;
       const springBonus=actor.springReady?1.35:1;actor.springReady=false;
       const count=actor.skill===0?2:actor.skill===4&&rng()<.25?2:1,starBonus=actor.rareGene===1&&!actor.starUsed?1.25:1;
@@ -168,7 +173,7 @@
   ];
   function migrate(s){
     if(!s||s.version!==2)return s;
-    Objectives.migrate(s);
+    Objectives.migrate(s);syncDeployment(s);
     if(!Array.isArray(s.breedingParents)){const last=[...s.cats].reverse().find(c=>c.parents?.length===2);s.breedingParents=last?[...last.parents]:s.cats.slice(0,2).map(c=>c.id);}
     if(!Array.isArray(s.pendingWelcomes))s.pendingWelcomes=[];
     if(!Array.isArray(s.pendingGrowth))s.pendingGrowth=[];
@@ -248,15 +253,21 @@
   const distance=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
   function lineClear(b,a,z){if(a.x!==z.x&&a.y!==z.y)return true;return !(b.blocks||[]).some(p=>a.x===z.x?p.x===a.x&&p.y>Math.min(a.y,z.y)&&p.y<Math.max(a.y,z.y):p.y===a.y&&p.x>Math.min(a.x,z.x)&&p.x<Math.max(a.x,z.x));}
   function attackRange(u){return (u.skill===11?3:[2,3,7].includes(u.skill)?2:1)+(u.mutation===10?1:0);}
-  function approach(b,u,target){if(!Number.isInteger(u.x)||u.rooted)return [];const range=attackRange(u),valid=p=>distance(p,target)<=range&&lineClear(b,p,target);if(valid(u))return [];
+  function moveRange(u){return u.rooted||u.frozen?0:u.skill===4||u.rareGene===4?2:1;}
+  function attackShape(u){return u.skill===11?'cross':'diamond';}
+  function canAttack(b,u,p){const d=distance(u,p);return d>0&&d<=attackRange(u)&&(attackShape(u)!=='cross'||u.x===p.x||u.y===p.y)&&lineClear(b,u,p)&&!(b.blocks||[]).some(q=>q.x===p.x&&q.y===p.y);}
+  function attackCells(b,u){return Array.from({length:25},(_,i)=>({x:i%5,y:Math.floor(i/5)})).filter(p=>canAttack(b,u,p));}
+  function moveCells(b,u){const steps=moveRange(u),queue=[{x:u.x,y:u.y,n:0}],seen=new Set([u.x+','+u.y]),out=[];while(queue.length){const p=queue.shift();if(p.n>=steps)continue;for(const [x,y] of [[p.x+1,p.y],[p.x-1,p.y],[p.x,p.y+1],[p.x,p.y-1]]){const k=x+','+y;if(seen.has(k)||!freeCell(b,{x,y}))continue;seen.add(k);out.push({x,y});queue.push({x,y,n:p.n+1});}}return out;}
+  function combatProfile(u){const range=attackRange(u),move=moveRange(u),shape=attackShape(u);return {range,move,shape,name:u.skill===11?'直线藤缚':[2,3,7].includes(u.skill)?'远程'+SKILLS[u.skill].name:[1,6,8,9].includes(u.skill)?'援护'+SKILLS[u.skill].name:'近身'+SKILLS[u.skill].name,attack:shape==='cross'?'同排或同列 '+range+' 格':range===1?'上下左右相邻 1 格':'按横竖步数计 '+range+' 格',support:[1,2,8,9].includes(u.skill)?'辅助可作用于全场队友；未施放辅助时按标示范围攻击。':u.skill===6?'优先挑衅保护自己，随后接近敌人。':'',detail:SKILLS[u.skill].desc};}
+  function approach(b,u,target){if(!Number.isInteger(u.x)||u.rooted)return [];const valid=p=>canAttack(b,{...u,...p},target);if(valid(u))return [];
     const blocked=new Set([...(b.blocks||[]),...b.units.filter(c=>c.life>0&&c.uid!==u.uid)].map(c=>c.x+','+c.y)),seen=new Set([u.x+','+u.y]),queue=[{x:u.x,y:u.y,path:[]}];let path=[];
     while(queue.length){const p=queue.shift();if(valid(p)){path=p.path;break;}const adjacent=[[p.x+1,p.y],[p.x-1,p.y],[p.x,p.y+1],[p.x,p.y-1]].map(([x,y])=>({x,y})).sort((a,z)=>distance(a,target)-distance(z,target));for(const n of adjacent){const k=n.x+','+n.y;if(n.x<0||n.y<0||n.x>=5||n.y>=5||blocked.has(k)||seen.has(k))continue;seen.add(k);queue.push({...n,path:[...p.path,n]});}}
-    const movement=u.skill===4||u.rareGene===4?2:1;return path.slice(0,movement);
+    return path.slice(0,moveRange(u));
   }
 
   function learnSkill(s,id,skill){migrate(s);const c=s.cats.find(c=>c.id===Number(id));if(!c||!Number.isInteger(skill)||skill<0||skill>=SKILLS.length)throw Error('请选择猫咪与本领。');if(c.skill===skill)return {cost:0,changed:false};const known=c.learnedSkills.includes(skill),cost=known||!c.lessonUsed?0:2;if(s.geneNotes<cost)throw Error('再攒 2 点灵感，就能研习新本领。');s.geneNotes-=cost;if(!known){c.learnedSkills.push(skill);c.lessonUsed=true;}c.skill=skill;return {cost,changed:true};}
   function freeCell(b,p){return p.x>=0&&p.x<5&&p.y>=0&&p.y<5&&!(b.blocks||[]).some(q=>q.x===p.x&&q.y===p.y)&&!b.units.some(q=>q.life>0&&q.x===p.x&&q.y===p.y);}
 
-  const api={Objectives,Growth,GENE_CAP,addXP,patrolInfo,claimPatrol,study,train,mentor,FORMATION,learnSkill,RARES,rare,rarityInfo,craftDew,attackRange,approach,TACTICS,ENCOUNTERS,levelInfo,trained,lookName,breedPlan,possibilities,recommendPair,canWelcome,welcomeGuest,encounter,battleStars,COLORS,PATTERNS,EARS,SKILLS,MUTATIONS,STAGES,key,initial,validate,preview,breed,createBattle,step,settle,WISHES,migrate,wishProgress,activeWish,claimWish,canSkip,fastForward};
+  const api={Objectives,Growth,GENE_CAP,addXP,patrolInfo,claimPatrol,study,train,mentor,FORMATION,deployment,syncDeployment,placeCat,moveRange,combatProfile,attackCells,moveCells,canAttack,learnSkill,RARES,rare,rarityInfo,craftDew,attackRange,approach,TACTICS,ENCOUNTERS,levelInfo,trained,lookName,breedPlan,possibilities,recommendPair,canWelcome,welcomeGuest,encounter,battleStars,COLORS,PATTERNS,EARS,SKILLS,MUTATIONS,STAGES,key,initial,validate,preview,breed,createBattle,step,settle,WISHES,migrate,wishProgress,activeWish,claimWish,canSkip,fastForward};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;root.GameCore=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
