@@ -21,16 +21,7 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig}){
  const pen=group(pigCenterX,0,0,scene),animals=[],buttons=new Map();
  pen.name="松露坡";
  const cream=0xf8dfb7,wood=0xaf8460;
- const hut=group(-4.4,.08,-2.52,pen);
- box(hut,0xd6ac84,0,.77,0,2.55,1.50,1.73);box(hut,0x896452,0,.56,.88,1.06,1.08,.07);
- for(let i=-5;i<=5;i++)box(hut,0xbe9576,i*.22,.79,.87,.019,1.46,.026);
- box(hut,cream,0,1.18,.94,1.21,.096,.078);
- for(const side of [-1,1]){
-   box(hut,cream,side*.58,.61,.94,.078,1.07,.08);
-   const roof=box(hut,0xa45f4e,side*.67,1.74,0,1.59,.17,2.14);roof.rotation.z=-side*.32;
-   for(let i=0;i<5;i++){const tile=box(hut,i%2?0xbe8067:0xc88b70,side*.67,1.85,-.85+i*.42,1.59,.078,.39);tile.rotation.z=-side*.32}
- }
- const bells=group(.81,1.51,.98,hut);
+ const bells=group(2.15,.92,-3.16,pen);
  for(const x of [-.11,.11]){
   const bell=group(x,0,0,bells);bell.rotation.z=x;
   box(bell,0x6d8c79,0,-.08,0,.046,.23,.044);
@@ -164,7 +155,7 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig}){
     oval(body,i?0xe69eac:0xf5b6c7,side*(.39+i*.06),.91-i*.12,-.18+i*.22,.16,.24,.083).rotation.z=-side*.54;
   }
   const halo=new T.Mesh(haloGeo,haloMat);halo.rotation.x=-Math.PI/2;halo.visible=false;pen.add(halo);
-  return {data,root,body,head,ears,eyes,legs,halo,turn:0,bounce:0,speed:.35};
+  return {data,root,body,head,ears,eyes,legs,halo,bounce:0,speed:.95+Math.random()*.32};
 
  }
  function truffle(t,from){
@@ -179,7 +170,7 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig}){
  function sync(){
   const herd=state().herd,s=state();
   bells.visible=s.pigBell>0;bells.children[1].visible=s.pigBell===2;
-  hut.visible=herd.length>0; pile.visible=herd.length>0;basket.visible=herd.length>0&&s.pigCollector>0;
+   pile.visible=herd.length>0;basket.visible=herd.length>0&&s.pigCollector>0;
   trough.visible=herd.length>0&&s.pigLevel>=2;annex.visible=herd.length>0&&s.pigLevel>=3;
   for(let i=animals.length-1;i>=0;i--){
    const a=animals[i];if(herd.includes(a.data))continue;
@@ -302,13 +293,9 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig}){
     if(f===1){a.launch=null;a.bounce=1}
     return;
    }
-   if(!isHeld&&over!==a){
-    a.turn-=dt;if(a.turn<=0){d.heading+=(Math.random()-.5)*1.25;a.turn=1.4+Math.random()*2.9;a.speed=Math.random()<.24?0:.32+Math.random()*.38}
-    const nx=d.x+a.speed*Math.sin(d.heading)*dt,nz=d.z+a.speed*Math.cos(d.heading)*dt;
-    if(nx+pigCenterX<grazing.left||nx+pigCenterX>grazing.right||nz<grazing.back||nz>grazing.front){d.heading=Math.atan2(fieldX-pigCenterX-d.x,fieldZ-d.z)}
-
-    else{d.x=nx;d.z=nz}
-   }
+   let walk=0;
+   if(isHeld||over===a)a.route=null;
+   else{walk=graze(a,d,dt,a.speed,pigCenterX);d.heading=root.rotation.y}
    const k=pigSize(d.level);a.bounce=Math.max(0,a.bounce-dt*1.35);
    const q=Math.cos((1-a.bounce)*16)*a.bounce*.26;
    root.position.set(d.x,.078+(isHeld?.8:0),d.z);root.rotation.y=d.heading;root.scale.set(k*(1+q),k*(1-q),k*(1+q));
@@ -316,7 +303,7 @@ function createPigFarm({state,collectTruffle,onMerge,buyPig}){
    a.eyes.forEach(eye=>eye.scale.y=1-.92*Math.max(0,1-Math.abs((t+i)%3.4-.12)/.105));
    a.ears.forEach((ear,j)=>ear.rotation.x=-.17+.11*Math.sin(t*4.2+i+j));
    body.rotation.x=.055*Math.sin(t*3+i)+.13*Math.max(0,Math.sin(t*.52+i));
-   legs.forEach((leg,j)=>leg.rotation.x=a.speed*.53*Math.sin(t*5+i+(j===0||j===3?0:Math.PI)));
+   legs.forEach((leg,j)=>leg.rotation.x=walk*.40*Math.sin(t*5+i+(j===0||j===3?0:Math.PI)));
    a.halo.visible=!!held&&!isHeld&&held.a.data.level===d.level&&d.level<pigBreeds.length-1;
    a.halo.position.set(d.x,.088,d.z);a.halo.scale.setScalar(k*(a===over?1.22:1));
   });

@@ -1,7 +1,7 @@
 'use strict';
 const townZ=39;
 const townSites={
- cow:{name:'风铃奶牛场',x:-14.6,z:-9.2,farm:true},horse:{name:'栗风马场',x:-2.5,z:-10.2,farm:true},
+ cow:{name:'奶牛饲养',x:-14.6,z:-9.2,farm:true},horse:{name:'马匹运输',x:-2.5,z:-10.2,farm:true},
  dairy:{name:'黄油街乳品铺',x:-1.1,z:0},inn:{name:'松露小馆',x:3.0,z:0},market:{name:'山间货栈',x:7.0,z:0}
 };
 const woolShopSite={x:-6.85,z:townZ-.45};
@@ -75,24 +75,14 @@ function createTownWorld(){
   const base=group(site.x,0,site.z,site.farm?farms:village),live=group(site.x,0,site.z,site.farm?farms:root);
   working[id]=live;
   if(site.farm){
-   const barn=group(-2.48,0,-1.23,live);barn.scale.setScalar(.80);cottage(barn,id==='cow'?0xf0dfbd:0xd8b28d,id==='cow'?green:0xa27560);
-   if(id==='horse'){
-    for(let j=0;j<20;j++){
-     const angle=j*Math.PI/10;
-     oval(base,0xc8b389,.35+2.53*Math.sin(angle),.041,.32+1.3*Math.cos(angle),.57,.024,.29).rotation.y=angle;
-    }
-    for(const x of [.90,2.03])box(live,cream,x,.45,-1.55,.11,.86,.12);
-    box(live,0xbc795d,1.46,.65,-1.55,1.25,.10,.10);
+   // Milk cans and tack belong to the common barn. The animals roam independently.
+   live.position.set(-5.55,0,-3.72);
+   if(id==='cow'){
+    for(const x of [1.8,2.24]){part(live,pole,0xbacbc4,x,.34,.84,.34,.52,.34);part(live,pole,cream,x,.61,.84,.30,.06,.30)}
    }else{
-    for(const x of [-1.67,-1.17]){
-     part(live,pole,0xbacbc4,x,.33,-.18,.34,.47,.34);
-     part(live,pole,0xe2d4af,x,.58,-.18,.29,.07,.29);
-    }
-    part(live,pole,wood,-3.16,1.22,.03,.10,2.40,.10);
-    box(live,wood,-2.85,2.38,.03,.70,.08,.09);
-    for(let j=0;j<3;j++)part(live,pole,0xd5b766,-3.01+j*.18,2.13-j*.042,.03,.047,.27+j*.05,.047);
+    for(const x of [-2.45,-1.72])box(live,wood,x,.42,.35,.11,.8,.11);
+    box(live,wood,-2.08,.74,.35,.94,.1,.11);oval(live,0x8e654c,-2.1,.79,.35,.2,.11,.24);
    }
-   box(live,wood,2.60,.25,-1.55,1.09,.44,.62);oval(live,id==='horse'?0xdcbc71:0xa4bfba,2.60,.49,-1.55,.49,.065,.23);
   }else{
    cottage(live,id==='inn'?0xf1c7a6:cream,id==='dairy'?green:id==='inn'?0xb57660:0x718595);
    if(id==='dairy'){
@@ -150,7 +140,7 @@ function createTownWorld(){
  // The street has its own camera layer so distant home pastures stay out of portrait views.
  streetModel(root);
  for(const light of scene.children)if(light.isLight)light.layers.enable(1);
- let trip=null;
+ let trip=null,lastFrame=performance.now();
  function sync(state){
   racks.forEach((rack,i)=>rack.visible=i<state.depot);
   trip=state.shipment;cart.visible=state.horse>0;
@@ -159,7 +149,7 @@ function createTownWorld(){
    const count=id==='market'?1:state[id];
    working[id].visible=count>0;if(covers[id])covers[id].visible=!count;
    if(!animals[id])continue;
-   while(animals[id].length<count){const a=townAnimal(id==='horse',animals[id].length);farms.add(a.root);animals[id].push(a)}
+   while(animals[id].length<count){const a=townAnimal(id==='horse',animals[id].length);const patch=grazingPatches[Math.floor(Math.random()*grazingPatches.length)];a.root.position.set(patch.x+Math.random()*.6,.09,patch.z+Math.random()*.6);a.root.name=id;farms.add(a.root);animals[id].push(a)}
    animals[id].forEach((a,i)=>{
     const hauling=id==='horse'&&i===count-1&&trip&&!trip.arrived;
     a.root.visible=i<count&&!hauling;
@@ -167,20 +157,16 @@ function createTownWorld(){
   }
  }
  function animate(ms){
-  const t=ms*.001;
+  const t=ms*.001,dt=Math.min(.12,(ms-lastFrame)/1000);lastFrame=ms;
   const moving=trip&&!trip.arrived;
   const f=moving?T.MathUtils.clamp((Date.now()-trip.start)/(trip.due-trip.start),0,1):0;
   cart.position.set(moving?7.9-16*f:7.9,.09+(moving?.023*Math.abs(Math.sin(t*5)):0),2.35);cart.rotation.y=-Math.PI/2;
   cartHorse.legs.forEach((leg,j)=>leg.rotation.x=.25*Math.sin(t*5+(j===0||j===3?0:Math.PI)));
   for(const [id,herd] of Object.entries(animals))herd.forEach((a,i)=>{
    if(!a.root.visible)return;
-   const horse=id==='horse',phase=t*(horse?.075:.052)+i*2.09;
-   const x=(horse?-5.5:-10.6)+Math.sin(phase)*(horse?10.2:8.4);
-   const z=-1.65+Math.sin(phase*2+(horse?.5:1.3))*2.2;
-   a.root.position.set(x,.09,z);
-   a.root.rotation.y=Math.atan2((horse?10.2:8.4)*Math.cos(phase),4.4*Math.cos(phase*2+(horse?.5:1.3)));
+   const pace=graze(a,a.root.position,dt,(id==='horse'?1.32:.9)+i*.07);
    a.head.rotation.x=.10*Math.sin(t*1.7+i)+(id==='cow'?.20:0);
-   a.legs.forEach((leg,j)=>leg.rotation.x=.21*Math.sin(t*3.3+i+(j===0||j===3?0:Math.PI)));
+   a.legs.forEach((leg,j)=>leg.rotation.x=pace*.21*Math.sin(t*3.3+i+(j===0||j===3?0:Math.PI)));
   });
  }
  return {root,farms,sync,animate};

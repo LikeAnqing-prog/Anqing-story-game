@@ -39,6 +39,7 @@ function createTown({visitMarket,state,recipes,productImage,commit}){
  let focus=null,batch=1,feedback='',signature='';
  const markers={},anchor=new T.Vector3();
  for(const [id,site] of Object.entries(townSites)){
+  if(site.farm)continue;
   const button=document.createElement('button');button.className='world-label town-place';button.dataset.site=id;
   button.textContent=site.name;button.hidden=true;document.body.append(button);markers[id]=button;
   button.onclick=()=>open(id);
@@ -56,10 +57,10 @@ function createTown({visitMarket,state,recipes,productImage,commit}){
  function frame(now,place,px,mode){
   world.animate(now);
   for(const [id,button] of Object.entries(markers)){
-   const site=townSites[id],farm=!!site.farm;
-   button.hidden=mode!==(farm?'ranches':'town')||!!focus&&id!==focus;
+   const site=townSites[id];
+   button.hidden=mode!=='town'||!!focus&&id!==focus;
    if(!button.hidden){
-    anchor.set(site.x+(farm?-1.9:0),farm?1.75:1.95,site.z+(farm?-.35:1.12)+(farm?0:townZ));
+    anchor.set(site.x,1.95,site.z+1.12+townZ);
     place(button,anchor,px);
    }
   }
@@ -112,7 +113,8 @@ function createTown({visitMarket,state,recipes,productImage,commit}){
   if(id==='cow')desc='每 '+milkInterval(state().town)/1000+' 秒产 '+cfg.yield[tier]+' 桶鲜奶，储奶槽可存 '+vatCapacity(state().town,tier)+' 桶。';
   if(id==='horse')desc='每趟最多运 '+loadCapacity(state().town,tier)+' 份订单，用时 '+tripDuration(state().town,tier)/1000+' 秒，送达价比自提高 35%。';
   if(id==='dairy'||id==='inn')desc='每批最多做 '+lot+' 份'+goods(cfg.output)+'，用时 '+cfg.seconds+' 秒。';
-  return row(level?'扩建至 '+tier+' 级':'开设'+townSites[id].name,desc,button('invest',(level?'扩建':'开设')+' · '+coinAmount(price),state().coins>=price));
+  const verb=townSites[id].farm?(level?'升级':'解锁'):(level?'扩建':'开设');
+  return row(level?verb+'至 '+tier+' 级':verb+townSites[id].name,desc,button('invest',verb+' · '+coinAmount(price),state().coins>=price));
  }
  function convoyCapacity(){return loadCapacity(state().town)}
  function payout(order,n,delivery){
@@ -170,7 +172,7 @@ function createTown({visitMarket,state,recipes,productImage,commit}){
   if(action==='invest'){
    const price=cfg.prices[t[id]];if(!price||s.coins<price)return;
    s.coins-=price;t[id]++;if(id==='cow'&&t.cow===1)t.milkDue=now+milkInterval(t);
-   feedback=townSites[id].name+(t[id]===1?'已开业':'扩建完成');
+   feedback=townSites[id].name+(t[id]===1?'已启用':'升级完成');
   }else if(action==='depot'){
    const price=depotPrices[t.depot];if(!price||s.coins<price)return;
    s.coins-=price;t.depot++;feedback='新货棚已启用，大宗供货额度提高';
@@ -193,5 +195,5 @@ function createTown({visitMarket,state,recipes,productImage,commit}){
   }else return;
   commit();
  });
- return {show,frame,refresh,tick,get focus(){return focus},overview(){focus=null}};
+ return {open,show,frame,refresh,tick,get focus(){return focus},overview(){focus=null}};
 }

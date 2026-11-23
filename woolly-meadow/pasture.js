@@ -38,6 +38,51 @@ function meadowSlab(width,depth,radius,thickness,color,y){
 // All grazing and ground drops use world coordinates inside the same perimeter.
 const grazing={left:-21.8,right:7.65,back:-12.45,front:4.75};
 const fieldX=-6.98,fieldZ=-4.32;
+// Every animal chooses from the same grass patches. Only solid scenery blocks a walk.
+const grazingPatches=[
+ [-20,-10],[-14,-11],[-8,-11],[0,-11],[6,-10],
+ [-18,-7],[-12,-6],[-4,-7],[3,-7],
+ [-19,-.1],[-14,1],[-9,-1],[-2,.2],[4,1],
+ [-18,3.5],[-10,3.5],[-3,3.4],[6,3.1]
+].map(([x,z])=>({x,z}));
+const solidScenery=[[-5.55,-3.72,2.05],[-3.25,-4.2,1.05],[-21.8,-9.7,.75],[-20,-13.1,.85],
+ [6.9,-4.9,.9],[8,-3.25,.8],[4.95,-5.05,.78],[-11.1,-2.9,.85],[-12.1,-3.05,.78],[-21.9,2.2,.85]];
+function clearWalk(from,to){
+ const dx=to.x-from.x,dz=to.z-from.z,length=dx*dx+dz*dz;
+ return solidScenery.every(([x,z,r])=>{
+  const f=length?Math.max(0,Math.min(1,((x-from.x)*dx+(z-from.z)*dz)/length)):0;
+  return (from.x+f*dx-x)**2+(from.z+f*dz-z)**2>r*r;
+ });
+}
+const patchLinks=grazingPatches.map(p=>grazingPatches.filter(q=>p!==q&&clearWalk(p,q)));
+function planWalk(from){
+ const opposite=grazingPatches.filter(p=>(p.x-fieldX)*(from.x-fieldX)<=0&&Math.abs(p.x-from.x)>7);
+ const pool=opposite.length?opposite:grazingPatches,dest=pool[Math.floor(Math.random()*pool.length)];
+ const goal={x:dest.x+(Math.random()-.5)*.8,z:dest.z+(Math.random()-.5)*.8};
+ if(clearWalk(from,goal))return [goal];
+ const nearest=[...grazingPatches].sort((a,b)=>Math.hypot(a.x-from.x,a.z-from.z)-Math.hypot(b.x-from.x,b.z-from.z));
+ const first=nearest.find(p=>clearWalk(from,p))||nearest[0],queue=[[first]],seen=new Set([first]);
+ for(let i=0;i<queue.length;i++){
+  const route=queue[i],last=route[route.length-1];
+  if(clearWalk(last,goal))return [...route,goal];
+  for(const next of patchLinks[grazingPatches.indexOf(last)])if(!seen.has(next)){seen.add(next);queue.push([...route,next])}
+ }
+ return [first];
+}
+function graze(actor,pos,dt,pace,originX=0){
+ if(actor.rest>0){actor.rest-=dt;return 0}
+ const x=pos.x+originX;
+ if(!actor.route?.length)actor.route=planWalk({x,z:pos.z});
+ const goal=actor.route[0],dx=goal.x-x,dz=goal.z-pos.z,distance=Math.hypot(dx,dz);
+ const step=Math.min(pace*dt,distance);
+ if(distance>.001){
+  const heading=Math.atan2(dx,dz),rotation=actor.root.rotation;
+  rotation.y+=Math.atan2(Math.sin(heading-rotation.y),Math.cos(heading-rotation.y))*Math.min(1,dt*6);
+  pos.x+=step*dx/distance;pos.z+=step*dz/distance;
+ }
+ if(distance<=step+.001){actor.route.shift();if(!actor.route.length)actor.rest=.6+Math.random()*1.8}
+ return pace;
+}
 const soilLayers=[meadowSlab(33.05,21.35,.66,.95,0xc79870,-1.1),meadowSlab(33.15,21.45,.67,.12,0xb6a26e,-.27)];
 const meadow=meadowSlab(33.22,21.51,.69,.15,0xffffff,-.16);
 for(const layer of [...soilLayers,meadow]){layer.position.x=fieldX;layer.position.z=fieldZ}
@@ -309,7 +354,7 @@ function spawn(x,z,level=0){
   }
   head.rotation.x=-.24;
   const halo=new T.Mesh(haloGeo,haloMat);halo.rotation.x=-Math.PI/2;halo.visible=false;scene.add(halo);
-  const s={root,body,head,legs,level,halo,nextHarvest:performance.now()+woolPeriod,angle:(rand()-.4)*1.8,turn:0,step:rand()*6,timer:0,speed:0,bounce:0,lift:0};
+  const s={root,body,head,legs,level,halo,nextHarvest:performance.now()+woolPeriod,angle:(rand()-.4)*1.8,pace:.9+rand()*.36,step:rand()*6,bounce:0,lift:0};
   root.rotation.y=s.angle;root.scale.setScalar(size(s));flock.push(s);stats();return s;
 }
 const coinIcon='<img class="coin-icon" src="art/coin.png" alt="金币">';
@@ -435,7 +480,7 @@ function dropLamb(){
   s.fall={elapsed:0,height:cloud.position.y-.5,startX:cloud.position.x,startZ:cloud.position.z,dx:(rand()-.5)*2.6,dz:.3+rand()*.95};
   s.root.position.y=s.fall.height;
   s.root.scale.setScalar(.45*size(s));
-  s.angle=.28;s.turn=.28;s.timer=.55;
+  s.root.rotation.y=.28;s.rest=.55;
 }
 
 function updateCloud(dt,now){
@@ -461,10 +506,15 @@ function fall(s,dt){
   s.root.scale.set(k*(1-.12*t),k*(1+.20*t),k);
   if(t===1){s.fall=null;s.bounce=1.15}
 }
-function stats(){document.querySelector('#count').textContent=flock.length;document.querySelector('#merges').textContent=merges}
+let otherHerdStats=()=>({animals:0,merges:0});
+function stats(){
+ const others=otherHerdStats();
+ document.querySelector('#count').textContent=flock.length+others.animals;
+ document.querySelector('#merges').textContent=merges+others.merges;
+}
 const ring=new T.Mesh(new T.RingGeometry(.78,.85,48),new T.MeshBasicMaterial({color:0xffee83,side:T.DoubleSide}));ring.rotation.x=-Math.PI/2;scene.add(ring);ring.visible=false;
 function remove(s){scene.remove(s.root,s.halo);flock.splice(flock.indexOf(s),1)}
-function reset(){for(const d of woolDrops)scene.remove(d.root);woolDrops.length=0;document.querySelectorAll('.harvest').forEach(el=>el.remove());wool=6;updateWool();cloudPulse=hintUntil=0;price.innerHTML=cloudLabel;drag=target=join=null;ring.visible=false;canvas.style.cursor='';for(const s of [...flock])remove(s);effects.forEach(p=>scene.remove(p.m));effects.length=0;document.querySelector('#note').style.opacity=0;merges=0;for(const [x,z,level] of [[-5,1,0],[-2.7,-1.35,1],[.25,-2.7,0],[3.7,-1.7,2],[6,1,1],[-2.6,3.45,2],[.65,1.4,0],[3.5,3.7,0]])spawn(x,z,level)}
+function reset(){for(const d of woolDrops)scene.remove(d.root);woolDrops.length=0;document.querySelectorAll('.harvest').forEach(el=>el.remove());wool=6;updateWool();cloudPulse=hintUntil=0;price.innerHTML=cloudLabel;drag=target=join=null;ring.visible=false;canvas.style.cursor='';for(const s of [...flock])remove(s);effects.forEach(p=>scene.remove(p.m));effects.length=0;document.querySelector('#note').style.opacity=0;merges=0;for(const [x,z,level] of [[-16,1,0],[-10,-8,1],[.25,-2.7,0],[3.7,-1.7,2],[-18,-6,1],[-8,3.45,2],[-13,2.6,0],[3.5,3.7,0]])spawn(x,z,level)}
 document.querySelector('#reset').onclick=reset;
 const ray=new T.Raycaster(),pointer=new T.Vector2(),floor=new T.Plane(new T.Vector3(0,1,0),-.07);
 function aim(e){ray.layers.mask=camera.layers.mask;pointer.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);ray.setFromCamera(pointer,camera)}
@@ -475,19 +525,17 @@ canvas.onpointermove=e=>{if(drag){if(drag.id===e.pointerId)place(e)}else{aim(e);
 function release(e,cancel){if(!drag||e.pointerId!==drag.id)return;const s=drag.s;if(!cancel){place(e);if(target&&compatible(s,target))join={a:s,b:target,start:s.root.position.clone(),t:0};
 else if(target){showNote(target,s.level===target.level?'已经是最终形态啦':'要找同款小羊哦');s.root.position.copy(drag.origin)}}s.bounce=.55;drag=target=null;ring.visible=false;canvas.style.cursor='default';if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId)}
 canvas.onpointerup=e=>release(e,false);canvas.onpointercancel=e=>release(e,true);
-function fuse(a,b){const p=b.root.position.clone(),level=a.level+1;remove(a);remove(b);merges++;const s=spawn(p.x,p.z,level);s.angle=.24;s.turn=.24;s.timer=1.1;s.bounce=1.15;
+function fuse(a,b){const p=b.root.position.clone(),level=a.level+1;remove(a);remove(b);merges++;const s=spawn(p.x,p.z,level);s.root.rotation.y=.24;s.rest=1.1;s.bounce=1.15;
 for(let i=0;i<15;i++){let an=rand()*Math.PI*2;let m=part(scene,i%2?rock:ball,i%3?0xffdc7d:0xfff6e8,p.x,1.1,p.z,.105,.105,.105);effects.push({m,v:new T.Vector3(Math.cos(an)*2,1+rand()*2.8,Math.sin(an)*2),t:0})}
 showNote(s,'第 '+(s.level+1)+' 阶 · '+breeds[s.level].name+' · 每轮 '+woolYield(s.level)+' 毛')}
 function showNote(s,message){const n=document.querySelector('#note'),p=s.root.position,v=new T.Vector3(p.x,1.94*size(s),p.z).project(camera);n.textContent=message;n.style.left=(v.x+1)*innerWidth/2+'px';n.style.top=(1-v.y)*innerHeight/2+'px';n.style.opacity=1;n.dataset.until=time+1.6}
 function resize(){let aspect=innerWidth/innerHeight,h=Math.max(17,28.2/aspect);Object.assign(camera,{left:-h*aspect/2,right:h*aspect/2,top:h/2,bottom:-h/2,near:.1,far:100});camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight,false)}
 window.addEventListener('resize',resize);resize();reset();let prev=performance.now();
 let updateSceneView=null;
-function frame(now){requestAnimationFrame(frame);let dt=Math.min(.05,(now-prev)/1000);prev=now;time+=dt;if(updateSceneView)updateSceneView(now);updateCloud(dt,now);
-for(const s of flock){if(s.fall){fall(s,dt);continue}const held=drag?.s===s,joining=join&&(join.a===s||join.b===s);let walk=0;if(!held&&!joining&&target!==s){s.timer-=dt;if(s.timer<=0){s.turn=s.angle+(rand()-.5)*2.3;s.speed=rand()<.23?0:.35+rand()*.38;s.timer=1.1+rand()*3.4}
-const p=s.root.position,nx=p.x+Math.sin(s.angle)*s.speed*dt,nz=p.z+Math.cos(s.angle)*s.speed*dt;
-if((nx<grazing.left&&nx<p.x)||(nx>grazing.right&&nx>p.x)||(nz<grazing.back&&nz<p.z)||(nz>grazing.front&&nz>p.z)){s.turn=Math.atan2(fieldX-p.x,fieldZ-p.z);s.timer=1.8}else{p.x=nx;p.z=nz;walk=s.speed}
-s.angle+=Math.atan2(Math.sin(s.turn-s.angle),Math.cos(s.turn-s.angle))*Math.min(1,dt*2.9)}
-s.root.rotation.y=s.angle;s.step+=dt*(walk?6:2);s.legs.forEach((g,i)=>g.rotation.x=walk*Math.sin(s.step+(i===0||i===3?0:Math.PI))*.68);
+function frame(now){requestAnimationFrame(frame);let dt=Math.min(.12,(now-prev)/1000);prev=now;time+=dt;if(updateSceneView)updateSceneView(now);updateCloud(dt,now);
+for(const s of flock){if(s.fall){fall(s,dt);continue}const held=drag?.s===s,joining=join&&(join.a===s||join.b===s);let walk=0;
+if(held||joining||target===s)s.route=null;else walk=graze(s,s.root.position,dt,s.pace);
+s.step+=dt*(walk?6:2);s.legs.forEach((g,i)=>g.rotation.x=walk*Math.sin(s.step+(i===0||i===3?0:Math.PI))*.68);
 s.lift+=((held?.95:0)-s.lift)*Math.min(1,dt*13);s.root.position.y=.07+s.lift+Math.abs(Math.sin(s.step))*walk*.12;
 s.bounce=Math.max(0,s.bounce-dt*1.12);const q=s.bounce*.3*Math.cos((1.15-s.bounce)*19),k=size(s);s.root.scale.set(k*(1+q-held*.07),k*(1-q+held*.12),k*(1+q));s.head.rotation.x=-.24+Math.sin(s.step*.8)*.055; s.halo.visible=!!drag&&compatible(drag.s,s)&&s!==target;if(s.halo.visible){s.halo.position.set(s.root.position.x,.085,s.root.position.z);s.halo.scale.setScalar(k)}}
 if(join){const j=join;j.t+=dt;const t=Math.min(1,j.t/.25);j.a.root.position.lerpVectors(j.start,j.b.root.position,t*t);j.a.root.scale.multiplyScalar(1-.45*t);j.b.body.scale.set(1+.19*t,1-.21*t,1+.14*t);if(t===1){join=null;fuse(j.a,j.b)}}
