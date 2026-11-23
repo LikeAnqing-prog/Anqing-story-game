@@ -423,7 +423,18 @@ function renderFarm(){
  const manage=warehouse&&!tools?'<button class="warehouse-care" data-manage-animal>'+ (locked?'解锁'+care:('照料'+care))+'</button>':'';
  const lockText='解锁'+care+'后可购买专属工具';
  farmDialog.querySelector('.farm-content').innerHTML=tabs+'<div class="funds">可用 '+coinIcon+' <b>'+shop.coins+'</b></div>'+
-  manage+(locked?'<p class="warehouse-lock">'+lockText+'</p>':'')+(warehouse?'<fieldset class="warehouse-goods" '+(locked?'disabled':'')+'>'+body+'</fieldset>':body);
+  (farmTab==='horse'?horseLocation(t):'')+manage+(locked&&farmTab!=='horse'?'<p class="warehouse-lock">'+lockText+'</p>':'')+(warehouse?'<fieldset class="warehouse-goods" '+(locked?'disabled':'')+'>'+body+'</fieldset>':body);
+}
+function horseLocation(t){
+ if(!t.horse)return '<p class="horse-location">尚未解锁 · 需要 '+coinAmount(townBusinesses.horse.prices[0])+'</p>';
+ const pairs=t.workers?.length||0,hauling=t.shipment&&!t.shipment.arrived?1:0;
+ const field=Math.max(0,t.horse-pairs-hauling),pairedInField=t.horse===pairs?pairs-hauling:pairs;
+ const locations=[];
+ if(field)locations.push('草地上 '+field+' 匹');
+ if(pairedInField)locations.push('化身打工人 '+pairedInField+' 匹');
+ if(hauling)locations.push((pairs===t.horse?'打工人送货中 ':'送货中 ')+hauling+' 匹');
+ return '<p class="horse-location">已解锁 '+t.horse+' 匹 · '+locations.join(' · ')+'</p>'+
+  (field?'<button class="warehouse-care" data-find-horse>去看马</button>':'');
 }
 function upgradeDigRate(field){
  const now=Date.now(),oldPeriod=pigDigPeriod(shop.pigLevel,shop.pigBell);
@@ -435,6 +446,10 @@ function openFarm(tab){if(drag||modal.open||farmDialog.open)return;farmTab=tab;f
 farmDialog.addEventListener('click',e=>{
  const btn=e.target.closest('button');if(!btn||btn.disabled)return;
  if(btn.hasAttribute('data-close')){farmDialog.close();return}
+ if(btn.hasAttribute('data-find-horse')){
+  const horse=town.fieldHorse();if(horse){farmDialog.close();view.findHorse(horse)}else renderFarm();
+  return;
+ }
  if(btn.hasAttribute('data-manage-animal')){
   if(farmTab==='pigTools'){farmTab='land';renderFarm()}
   else if(farmTab==='cow'||farmTab==='horse'){farmDialog.close();town.open(farmTab)}

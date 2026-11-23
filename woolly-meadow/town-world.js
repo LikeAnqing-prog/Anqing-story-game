@@ -6,13 +6,72 @@ const townSites={
 };
 const woolShopSite={x:-6.85,z:townZ-.45};
 function streetModel(object){object.traverse(o=>o.layers.set(1));return object}
+const calfCoats=new Map();
+function calfCoat(parent,i,face,x,y,z,w,h,d){
+ const key=(face?'face':'back')+i;
+ if(!calfCoats.has(key)){
+  const skin=document.createElement('canvas');skin.width=512;skin.height=256;
+  const ctx=skin.getContext('2d'),pixels=ctx.createImageData(skin.width,skin.height);
+  const ivory=[255,239,216],ink=[[65,61,64],[87,68,62],[63,68,68]][i%3];
+  for(let row=0;row<skin.height;row++){
+   const theta=Math.PI*(row+.5)/skin.height,b=Math.cos(theta),radius=Math.sin(theta);
+   for(let col=0;col<skin.width;col++){
+    const phi=2*Math.PI*(col+.5)/skin.width;
+    const a=-Math.cos(phi)*radius*(i%2?-1:1),c=Math.sin(phi)*radius;
+    const wave=.07*Math.sin(5*b+3*c+i)+.055*Math.cos(6*a-3*b);
+    const patch=face?Math.max(a+.3*b-.67,-a+.44*b-.95):
+     Math.max(-c+.31*a-.43,c+.53*a+.18*b-.68,b-.32*a-.77);
+    const t=T.MathUtils.smoothstep(patch+wave,-.012,.012),idx=(row*skin.width+col)*4;
+    for(let k=0;k<3;k++)pixels.data[idx+k]=ivory[k]+(ink[k]-ivory[k])*t;
+    pixels.data[idx+3]=255;
+   }
+  }
+  ctx.putImageData(pixels,0,0);
+  const tex=new T.CanvasTexture(skin);tex.colorSpace=T.SRGBColorSpace;tex.wrapS=T.RepeatWrapping;
+  calfCoats.set(key,new T.MeshStandardMaterial({map:tex,roughness:.89}));
+ }
+ const m=new T.Mesh(ball,calfCoats.get(key));m.position.set(x,y,z);m.scale.set(w,h,d);
+ m.castShadow=m.receiveShadow=true;parent.add(m);
+}
+function makeCalf(i){
+ const root=new T.Group(),body=group(0,0,0,root),head=group(0,1.07,.49,body),legs=[],eyes=[],ears=[];
+ const cream=0xffebd1,hoof=0x776458,rose=0xe6a49b;
+ calfCoat(body,i,false,0,.74,-.10,.49,.475,.74);
+ calfCoat(head,i,true,0,.016,.04,.45,.422,.363);
+ const tail=group(0,.83,-.74,body);
+ oval(tail,cream,.015,-.19,-.055,.048,.25,.051).rotation.x=.22;
+ oval(tail,0x514547,.018,-.398,-.095,.084,.117,.078);
+ for(const side of [-1,1]){
+  const horn=group(side*.235,.339,-.005,head);horn.rotation.z=-side*.38;
+  oval(horn,0xb49369,0,.048,0,.090,.125,.082);
+  oval(horn,0xefcf93,side*.016,.118,-.016,.075,.104,.066);
+  const ear=group(side*.354,.16,-.038,head);ear.rotation.z=side*.22;ears.push(ear);
+  oval(ear,side===1?0x504447:cream,side*.104,0,0,.20,.116,.095);
+  oval(ear,rose,side*.118,-.013,.066,.139,.068,.034);
+  const eye=group(side*.236,.06,.327,head);eye.rotation.y=side*.5;eyes.push(eye);
+  oval(eye,0x332d30,0,0,0,.063,.084,.044);
+  oval(eye,0xfffaf0,-.016,.030,.036,.021,.022,.012);
+  oval(eye,0xb09c84,.022,-.026,.036,.010,.014,.008);
+  oval(head,0xe8b0a4,side*.307,-.064,.284,.071,.035,.024).rotation.y=side*.55;
+ }
+ oval(head,0xf1b9ad,0,-.115,.348,.283,.148,.129);
+ for(const side of [-1,1])oval(head,0xae756b,side*.112,-.098,.463,.035,.021,.015).rotation.z=side*.26;
+ for(let j=0;j<3;j++)oval(head,0xffecd0,-.062+j*.065,.365-.018*j,.175+(j%2)*.027,.091,.127,.072).rotation.z=.48;
+ oval(body,0x649e90,0,.84,.40,.393,.093,.264);
+ part(body,pole,0xdbab55,0,.744,.655,.18,.153,.155);oval(body,0xa47b43,0,.659,.658,.037,.037,.035);
+ for(const x of [-.287,.287])for(const z of [-.44,.282]){
+  const leg=group(x,.425,z,body);
+  oval(leg,cream,0,-.115,0,.118,.211,.124);oval(leg,hoof,0,-.305,.019,.111,.084,.125);legs.push(leg);
+ }
+ root.scale.setScalar(.94);return {root,body,head,legs,eyes,ears,tail};
+}
 function townAnimal(horse,i){
+ if(!horse)return makeCalf(i);
  const root=new T.Group(),body=new T.Group();root.add(body);
- const coat=horse?[0xab714f,0xd6ad77,0x95705c][i%3]:0xf4e6cd;
- const dark=horse?0x604537:0x69574c;
+ const coat=[0xab714f,0xd6ad77,0x95705c][i%3];
+ const dark=0x604537;
  oval(body,coat,0,.83,0,.44,.43,.73);
- const head=group(0,horse?1.40:1.11,.57,body);
- if(horse){
+ const head=group(0,1.40,.57,body);
   oval(body,coat,0,1.17,.39,.30,.49,.31).rotation.x=.29;
   for(let k=0;k<4;k++)oval(body,dark,0,1.1+k*.11,.11+k*.065,.12,.15,.15);
   oval(head,coat,0,.02,.16,.245,.27,.39);
@@ -20,21 +79,12 @@ function townAnimal(horse,i){
   oval(head,0xffdfb6,0,.10,.45,.06,.13,.04);
   oval(body,0x507e77,0,1.16,-.07,.43,.13,.37);
   oval(body,0x896449,0,1.25,-.08,.30,.12,.26);
- }else{
-  for(const side of [-1,1]){
-   oval(body,dark,side*.36,.96,-.18,.108,.23,.29);
-   oval(body,dark,side*.35,.81,.32,.095,.14,.17);
-   part(head,cone,0xcfaf75,side*.21,.30,0,.078,.24,.07).rotation.z=-side*.24;
-  }
-  oval(head,coat,0,.01,.11,.34,.31,.32);oval(head,0xdeab99,0,-.11,.34,.28,.16,.15);
-  part(body,pole,0xd4a94f,0,.76,.64,.15,.18,.11);
- }
  for(const side of [-1,1]){
-  oval(head,coat,side*(horse?.16:.33),horse?.31:.15,0,horse?.079:.15,horse?.18:.085,.073).rotation.z=-side*.30;
-  oval(head,0x3c3431,side*(horse?.186:.18),.085,horse?.34:.355,.034,.045,.023);
-  oval(head,0x805949,side*.09,-.095,horse?.605:.475,.027,.02,.018);
+  oval(head,coat,side*.16,.31,0,.079,.18,.073).rotation.z=-side*.30;
+  oval(head,0x3c3431,side*.186,.085,.34,.034,.045,.023);
+  oval(head,0x805949,side*.09,-.095,.605,.027,.02,.018);
  }
- const tail=oval(body,dark,0,.68,-.72,.108,horse?.38:.22,.115);tail.rotation.x=.23;
+ const tail=oval(body,dark,0,.68,-.72,.108,.38,.115);tail.rotation.x=.23;
  const legs=[];
  for(const x of [-.25,.25])for(const z of [-.41,.41]){
   const leg=group(x,.66,z,body);oval(leg,coat,0,-.24,0,.105,.26,.115);oval(leg,dark,0,-.49,.02,.104,.085,.12);legs.push(leg);
@@ -172,11 +222,18 @@ function createTownWorld(getTown,commit){
   for(const [id,herd] of Object.entries(animals))herd.forEach((a,i)=>{
    if(!a.root.visible||staff.busy(a))return;
    const pace=graze(a,a.root.position,dt,(id==='horse'?1.32:.9)+i*.07);
-   a.head.rotation.x=.10*Math.sin(t*1.7+i)+(id==='cow'?.20:0);
+   if(id==='cow'){
+    const stride=a.gait.stride,rest=pace<.05;
+    a.body.rotation.z=.040*Math.sin(stride)*pace;
+    a.head.rotation.x=rest?.14+.22*Math.sin(t*1.25+i):.06+.055*Math.sin(stride*2);
+    a.tail.rotation.z=.19+.19*Math.sin(t*1.8+i);
+    a.eyes.forEach(eye=>eye.scale.y=1-.91*Math.max(0,1-Math.abs((t+i)%3.6-.11)/.11));
+    a.ears.forEach((ear,j)=>ear.rotation.x=-.06+.1*Math.sin(t*3+i+j));
+   }else a.head.rotation.x=.10*Math.sin(t*1.7+i);
    a.legs.forEach((leg,j)=>leg.rotation.x=pace*.21*Math.sin(a.gait.stride+(j===0||j===3?0:Math.PI)));
   });
   staff.animate(ms,dt);
   if(courier.root.visible)courier.legs.forEach((leg,j)=>leg.rotation.x=.31*Math.sin(t*5+j*Math.PI));
  }
- return {root,farms,sync,animate,staff};
+ return {root,farms,sync,animate,staff,fieldHorse:()=>animals.horse.find(a=>a.root.visible)?.root};
 }

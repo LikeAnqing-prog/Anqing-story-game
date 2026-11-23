@@ -218,5 +218,8 @@ function installShopView({town,door,portraits,openGuest,openBench,openDisplay,le
       order.style.top=clamp(narrow?y+px*.10:y-h*.48,8,Math.max(8,innerHeight-h-8))+'px';
     }
   };
-  return {leave,store,overview:ranches,bench,street};
+  function findHorse(horse){
+   ranches();farmAim.set(horse.position.x,.65,horse.position.z);shopZoom=2.8;
+  }
+  return {leave,store,overview:ranches,bench,street,findHorse};
 }

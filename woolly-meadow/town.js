@@ -196,5 +196,5 @@ function createTown({visitMarket,state,recipes,productImage,commit}){
   }else return;
   commit();
  });
- return {open,show,frame,refresh,tick,staff:world.staff,get focus(){return focus},overview(){focus=null}};
+ return {open,show,frame,refresh,tick,fieldHorse:world.fieldHorse,staff:world.staff,get focus(){return focus},overview(){focus=null}};
 }
