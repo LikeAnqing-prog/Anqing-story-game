@@ -30,7 +30,7 @@ function writeOrder(kind,double=Math.random()<.48,level=0){
  }
  return lines;
 }
-const initialShop=()=>({coins:0,town:initialTown(),stock:qtyZero(),displays:[],jobs:[],tools:{collector:0,shears:0},herd:[],pigLevel:1,truffles:[],slots:['granny','post','inn'].map(kind=>({kind,lines:writeOrder(kind,kind==='post')})),visits:{granny:0,post:0,inn:0,guest:0},bench:1});
+const initialShop=()=>({coins:0,town:initialTown(),stock:qtyZero(),displays:[],jobs:[],tools:{collector:0,shears:0},herd:[],pigCollector:0,pigMerges:0,pigLevel:1,truffles:[],slots:['granny','post','inn'].map(kind=>({kind,lines:writeOrder(kind,kind==='post')})),visits:{granny:0,post:0,inn:0,guest:0},bench:1});
 let shop=initialShop(), selected=0, message='';
 let finished=[];
 const key='woolly-meadow-shop-v1',door=document.querySelector('#shopDoor');
@@ -67,6 +67,13 @@ function migrate(){
  shop.stock={...qtyZero(),...shop.stock};shop.displays??=[];
  if(!shop.jobs){shop.jobs=shop.job?[shop.job]:[];shop.oldSpeed=shop.bench===2?2:1;delete shop.job}
  shop.tools??={collector:0,shears:0};shop.herd??=Array.from({length:shop.pigs||0},(_,i)=>newPiglet(i));delete shop.pigs;shop.pigLevel??=1;shop.truffles??=[];
+ shop.pigCollector??=0;shop.pigMerges??=0;
+ const digPeriod=pigPlots[shop.pigLevel-1].period,now=Date.now();
+ for(const pig of shop.herd){
+  // Older saves used one farm-wide clock. Resume each pig without replaying the entire offline interval.
+  pig.digDue=Math.max(now,Math.min(now+digPeriod,pig.digDue??shop.digDue??now+digPeriod));
+ }
+ delete shop.digDue;
  for(const slot of shop.slots){
   if(!slot.kind)continue;
   slot.lines=slot.lines?slot.lines.map(line=>({id:line.id||line.choice,qty:line.qty})):writeOrder(slot.kind,false);
@@ -171,6 +178,9 @@ function jobCard(job,index){
  return `<span class="job-tag" data-job="${index}">${productImage(job.id)}<span><b>${job.temporary?'临时 · ':''}${recipes[job.id].name}制作中</b><progress max="1" value="0"></progress></span><time></time></span>`;
 }
 function paint(){
+ pigLedger.textContent='香猪 '+shop.herd.length+' · 松露库存 '+shop.town.stock.truffle;
+ pigFarm.buyButton.firstElementChild.innerHTML='买香猪 · '+coinAmount(pigCost);
+ pigFarm.buyButton.setAttribute('aria-label','点便便堆，花 '+pigCost+' 金币买小香猪');
  pigManage.innerHTML=shop.herd.length?'照料猪场':'开垦 · '+coinAmount(120);
  document.querySelector('#coinTotal').textContent=shop.coins;
  cloudButton.dataset.poor=String(shop.coins<cloudCost);
@@ -306,11 +316,24 @@ farmDialog.innerHTML='<div class="awning"></div><div class="shop-head"><h2></h2>
 document.body.append(farmDialog);
 let farmTab='tools',nextSweep=0;
 const pigManage=document.createElement('button');pigManage.className='pig-manage';pigManage.textContent='照料猪场';document.body.append(pigManage);
-const pigFarm=createPigFarm({state:()=>shop,collectTruffle(amount){
- if(shop.town.keepTruffles){shop.town.stock.truffle+=amount;pigFarm.tell('松露入库 ×'+amount)}
+const pigLedger=document.createElement('b');pigLedger.className='pig-ledger';document.querySelector('header .stats').append(pigLedger);
+const pigCost=40;
+const pigFarm=createPigFarm({state:()=>shop,buyPig(){
+ if(!shop.herd.length)return;
+ if(shop.herd.length>=pigPlots[shop.pigLevel-1].capacity){pigFarm.tell('猪舍已满，合成或扩建后再来哦');return}
+ if(shop.coins<pigCost){pigFarm.tell('还差 '+(pigCost-shop.coins)+' 枚金币');return}
+ const pig=newPiglet(shop.herd.length);
+ pig.x=-2.25+Math.random()*1.7;pig.z=.45+Math.random()*1.35;pig.heading=(Math.random()-.5)*1.1;
+ pig.digDue=Date.now()+pigPlots[shop.pigLevel-1].period;
+ shop.coins-=pigCost;shop.herd.push(pig);pigFarm.pop(pig);paint();save();
+},collectTruffle(amount,automatic){
+ if(shop.town.keepTruffles)shop.town.stock.truffle+=amount;
  else shop.coins+=amount*5;
- pigFarm.sync();paint();save();
-},onMerge(level){pigFarm.tell('第 '+(level+1)+' 阶 · '+pigBreeds[level].name);paint();save()}});
+ if(!automatic){
+  pigFarm.tell(shop.town.keepTruffles?'松露入库 ×'+amount:'卖出松露 ×'+amount+' · 收入 '+amount*5);
+  pigFarm.sync();paint();save();
+ }
+},onMerge(level){shop.pigMerges++;pigFarm.tell('第 '+(level+1)+' 阶 · '+pigBreeds[level].name+' · 每轮 '+woolYield(level)+' 份松露');paint();save()}});
 const machine=group(-3.28,.09,-2.21,scene);
 machine.name='woolCollector';
 const collectorRate={interval:3000,piles:[0,2,5]};
@@ -373,7 +396,8 @@ function renderFarm(){
  farmDialog.querySelector('h2').textContent=tools?'羊仓库':owned?'松露小猪牧场':'扩建小猪牧场';
  const body=tools?toolRow('collector','毛团收集器','每 3 秒自动拾取地面毛团。一级收 2 堆，二级收 5 堆。')+
   toolRow('shears','梳毛刷','永久缩短全场产毛间隔。一级每 4 秒一轮，二级每 3 秒一轮。'):
-  owned?`<article><div><b>猪舍 · ${shop.herd.length} / ${plot.capacity} 只</b><p>同款猪可合成。每 ${plot.period/1000} 秒拱一次松露；一至四阶每堆售价依次为 ${coinAmount('5 / 15 / 35 / 75')}。</p></div><button data-adopt ${shop.herd.length>=plot.capacity||shop.coins<40?'disabled':''}>${shop.herd.length>=plot.capacity?'猪舍已满':'添小猪 · '+coinAmount(40)}</button></article>
+  owned?`<article><div><b>猪舍 · ${shop.herd.length} / ${plot.capacity} 只</b><p>点地上的便便堆领香猪，每只 ${coinAmount(pigCost)}。两只同款合成下一阶，共八阶。每 ${plot.period/1000} 秒拱一次松露，每只每轮产 1 至 255 份。已合成 ${shop.pigMerges} 次。</p></div></article>
+ <article><div><b>松露收集篮 · ${shop.pigCollector} / 2 级</b><p>每 3 秒自动拾取松露，一级收 2 堆，二级收 5 堆。松露按你选择的去向结算。</p></div><button data-pig-collector ${shop.pigCollector>=2||shop.coins<costs.collector[shop.pigCollector]?'disabled':''}>${shop.pigCollector===2?'已满级':(shop.pigCollector?'升级':'购买')+' · '+coinAmount(costs.collector[shop.pigCollector])}</button></article>
  <article><div><b>松露去向</b><p>仓库中有 ${shop.town.stock.truffle} 份食材。</p></div><button data-truffles>${shop.town.keepTruffles?'留作食材 · 切换':'直接出售 · 切换'}</button></article>
  <article><div><b>牧场等级 · ${shop.pigLevel} / 3</b><p>${next?'加建'+(shop.pigLevel===1?'饲料槽':'休息棚')+'，可养 '+next.capacity+' 只猪，每 '+next.period/1000+' 秒挖一轮松露。':'饲料槽和休息棚已建成。'}</p></div><button data-pig-upgrade ${!next||shop.coins<plot.price?'disabled':''}>${next?'升级牧场 · '+coinAmount(plot.price):'牧场已满级'}</button></article>`:
   `<article><div><b>松露坡 · 开垦新地</b><p>修好围栏和猪舍，迎来两只小猪。它们会在土里寻找松露，收入存入牧场的钱包。</p></div><button data-expand ${shop.coins<120?'disabled':''}>开垦 · ${coinAmount(120)}</button></article>`;
@@ -390,14 +414,15 @@ farmDialog.addEventListener('click',e=>{
   shop.coins-=price;shop.tools[key]++;syncTools();
  }else if(btn.hasAttribute('data-truffles')){shop.town.keepTruffles=!shop.town.keepTruffles;pigFarm.sync();
  }else if(btn.hasAttribute('data-expand')&&!shop.herd.length&&shop.coins>=120){
-  shop.coins-=120;shop.herd=[newPiglet(0),newPiglet(1)];shop.digDue=Date.now()+12000;pigFarm.sync();farmDialog.close();view.pigView();
- }else if(btn.hasAttribute('data-adopt')&&shop.herd.length>0&&shop.herd.length<pigPlots[shop.pigLevel-1].capacity&&shop.coins>=40){
-  shop.coins-=40;shop.herd.push(newPiglet(shop.herd.length));pigFarm.sync();
+  shop.coins-=120;shop.herd=[newPiglet(0),newPiglet(1)];for(const pig of shop.herd)pigFarm.pop(pig);farmDialog.close();view.pigView();
+ }else if(btn.hasAttribute('data-pig-collector')&&shop.herd.length){
+  const cost=costs.collector[shop.pigCollector];if(!cost||shop.coins<cost)return;
+  shop.coins-=cost;shop.pigCollector++;pigFarm.sync();
  }else if(btn.hasAttribute('data-pig-upgrade')&&shop.herd.length){
   const old=pigPlots[shop.pigLevel-1],next=pigPlots[shop.pigLevel];
   if(!next||shop.coins<old.price)return;
   const now=Date.now();pigFarm.tick(now);
-  shop.coins-=old.price;shop.pigLevel++;shop.digDue=now+(shop.digDue-now)*next.period/old.period;
+  shop.coins-=old.price;shop.pigLevel++;for(const pig of shop.herd)pig.digDue=now+Math.max(0,pig.digDue-now)*next.period/old.period;
   pigFarm.sync();
  }else return;
  paint();renderFarm();save();

@@ -217,12 +217,12 @@ function installShopView({town,door,portraits,openGuest,openBench,openDisplay,le
       document.querySelector('.brand h1').textContent=mode==='pig'?'松露小猪牧场':commercial?'牧场商业街':farmMap?'牧场全景':'绵绵牧场';
       document.querySelector('.brand .eng').textContent=mode==='pig'?'TRUFFLE MEADOW':commercial?'MEADOW MARKET':'WOOLLY MEADOW';
       sun.target.position.x=mode==='pig'?pigCenterX:0;sun.position.x=sun.target.position.x-10;sun.target.position.z=commercial?townZ:0;sun.position.z=sun.target.position.z+8;
-      hint.dataset.mode=area;hint.textContent=area==='locked'?'待开垦 · 向左拖空地返回羊场':mode==='pig'?'拖同款猪合成 · 向左拖空地返回羊场':inTown?'点店铺经营 · 点羊毛铺看顾客':farmMap?'点牧场进入 · 点商业街去经营':mode==='shop'?'点客人看订单 · 滑动返回商业街':'拖同款羊合成 · 向右拖空地看猪场';
+      hint.dataset.mode=area;hint.textContent=area==='locked'?'待开垦 · 向左拖空地返回羊场':mode==='pig'?'点便便堆买香猪 · 拖同款合成 · 点松露收集':inTown?'点店铺经营 · 点羊毛铺看顾客':farmMap?'点牧场进入 · 点商业街去经营':mode==='shop'?'点客人看订单 · 滑动返回商业街':'拖同款羊合成 · 向右拖空地看猪场';
     }
     document.body.classList.toggle('guest-view',mode==='guest');
     document.body.classList.toggle('pig-view',mode==='pig');
     document.body.classList.toggle('town-view',inTown||farmMap);
-    cloudButton.hidden=mode!=='home';
+    cloudButton.hidden=mode!=='home';pigFarm.showSource(mode==='pig',place,px);
     townBtn.hidden=mode==='guest'||inTown&&!town.focus;townBtn.textContent=commercial?'商业街全景':'商业街';
     landBtn.hidden=sheepBtn.hidden=!farmMap||!!town.focus;
     if(!landBtn.hidden){place(landBtn,pigAim,px);place(sheepBtn,home,px)}
