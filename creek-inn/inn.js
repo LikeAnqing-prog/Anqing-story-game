@@ -17,8 +17,8 @@ const animals = {
     { trigger: "留单", text: "今天没接，订单自动保留到次晚", booking: true }
   ] },
   firefly: { name: "提灯萤", rate: 3, hook: "给退房客人送行", rules: [
-    { trigger: "有客退房", text: "每送走 1 位其他住客", amount: "+2" },
-    { trigger: "多人送行", text: "同一位退房客只付一笔小费" }
+    { trigger: "提灯萤在店", text: "每有 1 位别的客人退房", amount: "+2" },
+    { trigger: "多只同住", text: "同一位退房客只算 1 次" }
   ] },
   hare: { name: "灰兔", rate: 3, hook: "习惯入住时先付清房费" },
   duck: { name: "小青鸭", rate: 2, hook: "想画溪湾地图", rules: [
@@ -176,8 +176,8 @@ function planNight(state, renewal = state.renewal) {
   if (state.rooms[state.viewRoom]?.kind === "otter") award("otter", "团尾水獭的观景房费", 2);
   const porters = guests.filter(guest => guest.kind === "firefly");
   if (porters.length) {
-    const sent = leaving.filter(guest => porters.length > 1 || guest.id !== porters[0].id).length;
-    award("firefly", `提灯萤送走 ${sent} 位客人`, sent * 2);
+    const eligibleDepartures = leaving.filter(guest => porters.length > 1 || guest.id !== porters[0].id).length;
+    award("firefly", `提灯萤的退房小费（${eligibleDepartures} 位）`, eligibleDepartures * 2);
   }
 
   const mapMakers = new Set(guests.filter(guest => guest.kind === "duck" && !guest.trip && (guest.hasMap || kinds.has("otter"))).map(guest => guest.id));
