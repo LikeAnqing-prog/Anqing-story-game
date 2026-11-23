@@ -1,0 +1,4 @@
+/* Kept inside #game so the mark also follows full-screen gameplay. */
+#meow-watermark{position:absolute;z-index:10000;left:12px;top:42%;max-width:calc(100% - 24px);padding:3px 7px;color:#fff9ec;background:#39332275;border-radius:4px;font:600 11px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;letter-spacing:.07em;white-space:nowrap;pointer-events:none;user-select:none;opacity:.58;animation:meow-watermark-drift 36s ease-in-out infinite}
+@keyframes meow-watermark-drift{0%,100%{left:12px;top:42%;transform:translateX(0)}35%{left:calc(100% - 12px);top:58%;transform:translateX(-100%)}70%{left:calc(100% - 12px);top:30%;transform:translateX(-100%)}}
+@media(prefers-reduced-motion:reduce){#meow-watermark{animation:none}}
