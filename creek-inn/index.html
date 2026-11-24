@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#e8edce">
 <title>溪湾旅栈试玩</title>
-<link rel="stylesheet" href="./inn.css?v=advance-booking">
-<script src="./inn.js?v=advance-booking" defer></script>
+<link rel="stylesheet" href="./inn.css?v=stays-and-gifts">
+<script src="./hospitality.js?v=stays-and-gifts" defer></script>
+<script src="./inn.js?v=stays-and-gifts" defer></script>
 </head>
 <body>
 <main id="game" class="game" aria-label="溪湾旅栈">
@@ -14,6 +15,7 @@
     <div class="hud-main">
       <strong class="day" id="day"></strong>
       <div class="wallet" aria-label="钱包"><i class="leaf-coin" aria-hidden="true"></i><output id="wallet">0</output><small>叶币</small></div>
+      <button class="mini-button" id="bellToggle" aria-label="关闭铃声">♫</button>
       <button class="mini-button" id="helpButton" aria-label="怎么玩">?</button>
       <button class="mini-button" id="restartButton" aria-label="新开一局">↻</button>
     </div>
@@ -32,10 +34,12 @@
     <div id="floors" class="floors" aria-label="旅馆客房"></div>
     <div class="yard" aria-label="旅馆门前">
       <div class="queue" id="queue"></div>
+      <button id="lobbyDisplay" class="lobby-display" hidden></button>
       <div class="yard-status">
         <span id="leaving"></span>
         <button id="appointmentPrompt" class="trail-prompt" hidden></button>
         <button id="trailPrompt" class="trail-prompt" hidden></button>
+        <button id="visitToday" class="trail-prompt" hidden></button>
       </div>
     </div>
   </div>
@@ -44,6 +48,7 @@
     <section id="guestCard" class="guest-card" aria-labelledby="guestName" hidden>
       <div class="guest-card-head"><h2 id="guestName"></h2><span id="guestStay"></span><button id="guestClose" class="mini-button" aria-label="关闭住客信息">×</button></div>
       <ul id="guestRules" class="guest-rules" aria-label="住客本领"></ul>
+      <p id="guestLodging" class="guest-lodging" hidden></p>
       <p id="renewEffect" hidden></p>
       <div id="renewForecast" class="renew-forecast" hidden></div>
       <button class="wood" id="renew" hidden></button>
@@ -51,6 +56,7 @@
     <div class="dock-actions">
       <button id="buildingButton" class="tool-button" aria-label="扩建旅馆"><span aria-hidden="true" class="house-icon"></span></button>
       <button id="journalButton" class="tool-button journal-entry" aria-label="旅客手账"><span aria-hidden="true" class="journal-icon"></span><small>手账</small></button>
+      <button id="hospitalityButton" class="tool-button journal-entry" aria-label="老板的小屋"><span aria-hidden="true" class="owner-icon"></span><small>小屋</small></button>
       <button id="settle" class="wood primary settle"><span id="settleText">结算今晚</span><small id="expected"></small></button>
       <button id="phoneButton" class="tool-button" aria-label="打开手机"><span aria-hidden="true" class="phone-icon"></span></button>
     </div>
@@ -63,6 +69,8 @@
   <div class="phone-screen">
     <header class="phone-head">
       <h2 id="phoneTitle">旅馆预约</h2>
+      <button class="phone-shortcut" id="phoneFurnish">装扮</button>
+      <button class="phone-shortcut" id="phoneFriends">老朋友</button>
       <button class="mini-button" id="phoneClose" aria-label="关闭手机">×</button>
     </header>
     <div class="order-summary"><p id="phoneForecast"></p><p id="phoneStay" hidden></p></div>
@@ -72,12 +80,64 @@
       <ul id="phonePayouts" class="entries"></ul>
     </details>
     <section id="phoneCommissions" aria-label="提前预约" hidden></section>
+    <section id="phoneLodgingForecast" class="phone-highlights lodging-forecast" aria-label="房间喜好影响" hidden></section>
+    <details id="phoneRoomPlans" class="phone-room-plans" hidden>
+      <summary>客房分配</summary>
+      <ul id="phoneAssigned"></ul>
+      <div id="phoneMove">
+        <label>住客 <select id="moveGuest"></select></label>
+        <label>客房 <select id="moveRoom"></select></label>
+        <button id="moveApply" class="wood">调整房间</button>
+      </div>
+    </details>
     <div class="order-buttons" id="orderList"></div>
     <footer class="phone-foot">
       <p id="phoneEstimate" class="phone-estimate" role="status" hidden></p>
       <p id="phoneNote"></p>
       <button class="wood primary" id="phoneDone"></button>
     </footer>
+  </div>
+</dialog>
+
+<dialog id="hospitality" class="paper hospitality" aria-labelledby="hospitalityTitle">
+  <div class="hospitality-layout">
+    <header class="hospitality-head">
+      <div><h2 id="hospitalityTitle">老板的小屋</h2><p id="hospitalityWallet"></p></div>
+      <form method="dialog"><button class="mini-button" aria-label="关闭小屋">×</button></form>
+    </header>
+    <nav id="hospitalityNav" class="hospitality-nav" aria-label="小屋菜单">
+      <button class="wood" data-page="rooms">客房装扮</button>
+      <button class="wood" data-page="owner">我的小屋</button>
+      <button class="wood" data-page="friends">老朋友</button>
+      <button class="wood" data-page="gifts">礼物柜</button>
+    </nav>
+    <div class="hospitality-scroll">
+      <div id="ownerRoom" class="owner-room" hidden></div>
+      <div id="hospitalityContents"></div>
+    </div>
+    <p id="hospitalityStatus" class="hospitality-status" role="status"></p>
+  </div>
+</dialog>
+
+<dialog id="turn" class="turn" aria-labelledby="turnTitle">
+  <button id="turnSkip" aria-label="跳过转场">
+    <i class="turn-bell" aria-hidden="true"></i>
+    <small id="turnDate"></small>
+    <strong id="turnTitle"></strong>
+    <span id="turnVisitor" class="turn-visitor" hidden></span>
+    <span id="turnNote" hidden></span>
+  </button>
+</dialog>
+
+<dialog id="keepsake" class="paper" aria-labelledby="keepsakeTitle">
+  <div class="paper-inner">
+    <h2 id="keepsakeTitle">带一件物件开下一季</h2>
+    <p>熟客回忆和合作客源会留下。</p>
+    <label class="hospitality-picker">招牌物件 <select id="keepsakeSelect"></select></label>
+    <div class="dialog-actions">
+      <form method="dialog"><button class="wood">返回账单</button></form>
+      <button class="wood primary" id="keepsakeConfirm">带上它，开张</button>
+    </div>
   </div>
 </dialog>
 
@@ -169,6 +229,7 @@
     <h2 id="helpTitle">开店指南</h2>
     <ol>
       <li>在手机挑选订单。确认后，客人会从门口自动入住。</li>
+      <li>用叶币买客房摆件。查看客人对房间的反应，退房后可以在手机邀请老朋友来小屋做客。</li>
       <li>双人单可提前预约。留够房间，到店当晚会自动选中这一单。两位客人退房时会给委托谢礼。</li>
       <li>点动物看本领。每天可请一位到期的客人多留一晚，每位客人只能续住一次。续住会延后退房奖励，也会占一间房。</li>
       <li>结算后查看明晚订单，关手机就进入下一天。每七晚交房租，交清后可以扩建。新增楼层从可接客的第一晚起，每层每晚多收 5 叶币。</li>

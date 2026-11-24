@@ -10,7 +10,7 @@ const openingWallet = 8;
 const lookOutCost = 12;
 const restRoomCost = 12;
 const restRoomBonus = 5;
-const partnerNames = { short: "溪畔旅伴", view: "观鸟协会" };
+const partnerNames = { short: "溪畔旅伴", view: "观鸟协会", flower: "花友会" };
 const animals = {
   bee: { name: "圆蜜蜂", rate: 3, hook: "认识许多短途旅客", rules: [
     { trigger: "退房时", text: "次晚增加 1 张短住订单", booking: true },
@@ -66,7 +66,9 @@ const commissions = [
   { id: "market", night: 9, name: "赶集双人单", guests: ["butterfly", "hare"], nights: 1, bonus: 8 },
   { id: "season-trip", night: 16, name: "溪湾周末双人单", guests: ["bee", "butterfly"], nights: 1, bonus: 8 },
   { id: "short-festival", night: 16, name: "溪畔旅伴 · 溪湾集会", guests: ["bee", "butterfly"], nights: 1, bonus: 14, partner: "short" },
-  { id: "view-festival", night: 16, name: "观鸟协会 · 候鸟小团", guests: ["heron", "otter"], nights: 2, bonus: 18, partner: "view", view: true }
+  { id: "view-festival", night: 16, name: "观鸟协会 · 候鸟小团", guests: ["heron", "otter"], nights: 2, bonus: 18, partner: "view", view: true },
+  { id: "flower-festival", night: 16, name: "花友双人单", guests: ["butterfly", "butterfly"], nights: 1, bonus: 14, flowers: true },
+  ...[4, 11, 18].map(night => ({ id: `map-${night}`, night, name: "溪湾地图 · 水路双人单", guests: ["duck", "otter"], nights: 1, bonus: 8, map: true }))
 ];
 const commissionById = new Map(commissions.map(commission => [commission.id, commission]));
 
@@ -82,23 +84,29 @@ function newBusiness(channels = [], season = 1) {
   return { restRoom: null, restStreak: 0, viewNights: 0, channels: channels.slice(), reservations: {}, season };
 }
 
-function upcomingCommissions(night, business) {
+function upcomingCommissions(night, business, hospitality) {
   return commissions.filter(commission => {
     if (commission.night <= night || commission.night > night + 2) return false;
     if (business.reservations[commission.id] === "reserved") return true;
+    if (commission.map) return hospitality?.showcase === "map";
+    if (commission.flowers) return business.channels.includes("flower")
+      || Object.values(hospitality?.decor ?? {}).some(key => furnishings[key].flowers);
     if (commission.partner) return business.channels.includes(commission.partner);
     return commission.id !== "season-trip" || !business.channels.length;
   });
 }
 
 function commissionOrder(commission) {
-  return themedOrder(commission.night, commission.id, commission.name,
+  const order = themedOrder(commission.night, commission.id, commission.name,
     `两位客人都退房时，另付 ${commission.bonus} 叶币。`, commission.guests, commission.nights,
     { view: Boolean(commission.view), commission: true });
+  if (commission.flowers) for (const guest of order.guests) guest.needsFlower = true;
+  return order;
 }
 
 function outstandingCommission(business, night) {
-  return commissions.find(commission => commission.night >= night && business.reservations[commission.id] === "reserved");
+  return commissions.filter(commission => commission.night >= night && business.reservations[commission.id] === "reserved")
+    .sort((left, right) => left.night - right.night)[0];
 }
 
 function stayUntil(rooms, nightsAhead) {
@@ -158,6 +166,11 @@ function ordersFor(night, trail, { referral = false, heldButterfly = null, busin
       viewOrder.guests[0].needsView = true;
       offers.unshift(viewOrder);
     }
+    if (night % 4 === 0 && business.channels.includes("flower")) {
+      const order = extraOrder(night, "butterfly", 1, partnerNames.flower);
+      order.guests[0].needsFlower = true;
+      offers.unshift(order);
+    }
   }
   if (trail.returnFrom !== null && night >= trail.returnFrom && night <= orderCalendar.length - 2 && !trail.returnBooked) {
     offers.unshift(themedOrder(night, "return", "小青鸭的双人回访", "小青鸭带水獭朋友走一遍地图，想一起住两晚。", ["duck", "otter"], 2));
@@ -179,28 +192,64 @@ function reservedGuests(orders, picks) {
   return orders.filter(order => picks.includes(order.id)).flatMap(order => order.guests);
 }
 
-function bookingRestriction(order, rooms, viewRoom, selected = []) {
+function bookingRestriction(order, rooms, viewRoom, selected = [], hospitality) {
   const view = order.guests.some(guest => guest.needsView);
   if (view && viewRoom === null) return "先布置观景房";
   if (view && (rooms[viewRoom] || selected.some(guest => guest.needsView))) return "观景房已占用";
   if (order.guests.length + selected.length > rooms.filter(room => !room).length) return `需要 ${order.guests.length} 间空房`;
+  const all = [...order.guests, ...selected];
+  const flowerGuests = all.filter(guest => guest.needsFlower).length;
+  if (flowerGuests) {
+    const needsView = all.some(guest => guest.needsView);
+    const freeFlowers = rooms.filter((guest,slot) => !guest && roomFurnishing(hospitality,slot)?.flowers && (!needsView || slot!==viewRoom)).length;
+    if (freeFlowers < flowerGuests) return `需 ${flowerGuests} 间空花房`;
+  }
   return "";
 }
 
-function allocation(rooms, arrivals, viewRoom = null, restRoom = null) {
+function allocation(rooms, arrivals, viewRoom = null, restRoom = null, hospitality, override) {
   const waiting = arrivals.slice();
   const next = rooms.slice();
   const reservedIndex = waiting.findIndex(guest => guest.needsView);
   if (reservedIndex >= 0 && viewRoom !== null && next[viewRoom] === null) {
     [next[viewRoom]] = waiting.splice(reservedIndex, 1);
   }
+  while (waiting.some(guest => guest.needsFlower)) {
+    const guestIndex = waiting.findIndex(guest => guest.needsFlower);
+    const slot = next.findIndex((guest,index) => !guest && roomFurnishing(hospitality,index)?.flowers);
+    if (slot < 0) break;
+    [next[slot]] = waiting.splice(guestIndex, 1);
+  }
+  if (override && next[override.slot] === null) {
+    const index = waiting.findIndex(guest => guest.id === override.id && !guest.needsView && !guest.needsFlower);
+    if (index >= 0) [next[override.slot]] = waiting.splice(index,1);
+  }
   if (viewRoom !== null && next[viewRoom] === null) {
     const otterIndex = waiting.findIndex(guest => guest.kind === "otter");
     if (otterIndex >= 0) [next[viewRoom]] = waiting.splice(otterIndex, 1);
   }
   if (restRoom !== null && next[restRoom] === null) {
-    const shortIndex = waiting.findIndex(guest => guest.nights === 1);
+    const short = waiting.filter(guest=>guest.nights===1);
+    const score = guest=>lodgingScore(guest,restRoom,{hospitality,viewRoom});
+    const candidate = short.find(guest=>score(guest)>0) ?? short.find(guest=>score(guest)>=0);
+    const shortIndex = waiting.indexOf(candidate);
     if (shortIndex >= 0) [next[restRoom]] = waiting.splice(shortIndex, 1);
+  }
+  if (hospitality && Object.keys(hospitality.decor).length) {
+    const state = { hospitality, viewRoom };
+    waiting.sort((left,right) => Number(["heron","firefly"].includes(right.kind))-Number(["heron","firefly"].includes(left.kind)));
+    for (const [index,guest] of waiting.entries()) {
+      let bestSlot = -1;
+      let bestScore = -Infinity;
+      for (const [slot, occupant] of next.entries()) {
+        if (occupant) continue;
+        const neededByOthers = waiting.slice(index+1).some(person=>lodgingScore(person,slot,state)>0);
+        const score = lodgingScore(guest,slot,state)*2 - Number(neededByOthers);
+        if (score>bestScore) { bestSlot = slot; bestScore = score; }
+      }
+      if (bestSlot>=0) next[bestSlot]=guest;
+    }
+    return next;
   }
   return next.map(guest => guest ?? waiting.shift() ?? null);
 }
@@ -228,7 +277,7 @@ function planNight(state, renewal = state.renewal) {
   const award = (kind, label, amount) => {
     if (!amount) return;
     coins += amount;
-    lines.push({ kind, label, amount: `+${amount} 叶币` });
+    lines.push({ kind, label, amount: `${amount>0?"+":""}${amount} 叶币` });
   };
   const unlock = key => {
     if (business.channels.includes(key)) return;
@@ -240,9 +289,10 @@ function planNight(state, renewal = state.renewal) {
     if (guest.kind === "heron") award("heron", `小白鹭遇见 ${kinds.size - 1} 种其他动物`, Math.min(6, (kinds.size - 1) * 2));
   }
   if (state.rooms[state.viewRoom]?.kind === "otter") award("otter", "团尾水獭的观景房费", 2);
-  const porters = guests.filter(guest => guest.kind === "firefly");
+  const porters = state.rooms.filter((guest,slot) => guest?.kind === "firefly" && state.hospitality?.decor[slot] !== "curtain");
+  let eligibleDepartures = 0;
   if (porters.length) {
-    const eligibleDepartures = leaving.filter(guest => porters.length > 1 || guest.id !== porters[0].id).length;
+    eligibleDepartures = leaving.filter(guest => porters.length > 1 || guest.id !== porters[0].id).length;
     award("firefly", `提灯萤的退房小费（${eligibleDepartures} 位）`, eligibleDepartures * 2);
   }
   const restGuest = state.rooms[business.restRoom];
@@ -261,12 +311,15 @@ function planNight(state, renewal = state.renewal) {
   }
   const completed = commissionById.get(leaving.find(guest => guest.commission)?.commission);
   const contractState = completed && business.reservations[completed.id];
+  let finishedBirdCommission = false;
   if ((contractState === "reserved" || contractState === "staying")
       && leaving.filter(guest => guest.commission === completed.id).length === completed.guests.length) {
     business.reservations[completed.id] = "done";
     award(completed.guests[0], `${completed.name} · 委托谢礼`, completed.bonus);
     highlights.push({ label: `${completed.name}完成`, amount: completed.bonus });
+    if (completed.flowers) unlock("flower");
     if (!completed.view) unlock("short");
+    finishedBirdCommission = Boolean(completed.view);
   }
 
   const mapMakers = new Set(guests.filter(guest => guest.kind === "duck" && !guest.trip && (guest.hasMap || kinds.has("otter"))).map(guest => guest.id));
@@ -290,6 +343,7 @@ function planNight(state, renewal = state.renewal) {
       ? `${nightText(trail.birdFrom)}起，小白鹭会在手机发来候鸟周委托。` : "旅客手账记下了两位熟客的回访。" });
   }
   if (!trail.birdDone && leaving.some(guest => guest.trip === "bird")) {
+    finishedBirdCommission = true;
     trail.birdDone = true;
     trail.gifted = trail.sachet;
     award("heron", "候鸟周委托酬谢", 10);
@@ -297,6 +351,12 @@ function planNight(state, renewal = state.renewal) {
     stories.push({ kind: "heron", title: "小白鹭的清晨", detail: trail.gifted
       ? "小白鹭带着香包离开，给旅馆留下一张亲手画的候鸟明信片。"
       : "小白鹭看见了第一只候鸟，给旅馆留下一张明信片。" });
+  }
+  const { hospitality, effects } = hospitalityEffects(state, departed, eligibleDepartures, finishedBirdCommission);
+  for (const effect of effects) {
+    if (effect.coins) award(effect.kind, effect.label, effect.coins);
+    else if (effect.buds) lines.push({ kind:effect.kind, label:effect.label, amount:`+${effect.buds} 花芽`, resource:"bud" });
+    else lines.push({ kind:effect.kind, label:effect.label });
   }
   const nextRooms = state.rooms.map(guest => {
     if (!guest || departed.has(guest.id)) return null;
@@ -309,7 +369,7 @@ function planNight(state, renewal = state.renewal) {
     return staying;
   });
   const referral = state.night < orderCalendar.length - 1 && leaving.some(guest => guest.kind === "bee");
-  return { roomCoins, coins, lines, leaving, nextRooms, trail, business, highlights, stories, referral, prepayments };
+  return { roomCoins, coins, lines, leaving, nextRooms, trail, business, hospitality, effects, highlights, stories, referral, prepayments };
 }
 
 function newNight(previous, night) {
@@ -319,6 +379,7 @@ function newNight(previous, night) {
     night, floorOpen, floors: floorOpen.length, rent: rentFor(week, floorOpen), paid: previous?.paid ?? 0,
     wallet: previous?.wallet ?? openingWallet, trail: previous?.trail ?? emptyTrail(), viewRoom: previous?.viewRoom ?? null,
     business: previous?.business ?? newBusiness(),
+    hospitality: previous?.hospitality ?? newHospitality(), roomChoice: previous?.roomChoice ?? null,
     rooms: previous?.result?.nextRooms ?? Array(floorOpen.length * roomsPerFloor).fill(null),
     referral: previous?.result?.referral ?? false, heldButterfly: previous?.carryButterfly ?? null,
     carryButterfly: null, queue: [], renewal: null, picks: [], phase: "planning", result: null
@@ -346,7 +407,8 @@ const create = (tag, className = "", label = "") => {
   return element;
 };
 const resourceIcons = {
-  coin: { className: "leaf-coin", label: "叶币" }
+  coin: { className: "leaf-coin", label: "叶币" },
+  bud: { className: "flower-bud", label: "花芽" }
 };
 function valueWithIcon(amount, type = "coin", withLabel = true) {
   const { className, label } = resourceIcons[type];
@@ -400,9 +462,10 @@ function restore() {
   return null;
 }
 
-function start(channels = [], season = 1) {
+function start(channels = [], season = 1, hospitality = newHospitality()) {
   game = newNight(null, 0);
   game.business = newBusiness(channels, season);
+  game.hospitality = hospitality;
   checkpoint = structuredClone(game);
   activeGuest = null;
   pendingBuildScroll = false;
@@ -529,10 +592,13 @@ function venueFloor(index) {
     windowView.setAttribute("aria-hidden", "true");
     const viewTag = create("span", "view-tag", "观景");
     const restTag = create("span", "rest-tag", "歇脚");
-    windowView.hidden = viewTag.hidden = restTag.hidden = badge.hidden = wish.hidden = true;
-    button.append(windowView, viewTag, restTag, badge, wish);
+    const decor = create("i", "room-decoration");
+    const reward = create("span", "room-reward");
+    reward.setAttribute("aria-hidden", "true");
+    windowView.hidden = viewTag.hidden = restTag.hidden = badge.hidden = wish.hidden = decor.hidden = reward.hidden = true;
+    button.append(windowView, viewTag, restTag, badge, wish, decor, reward);
     rooms.append(button);
-    return { slot, button, badge, wish, viewTag, restTag, windowView, image: null, guestId: null };
+    return { slot, button, badge, wish, viewTag, restTag, windowView, decor, reward, image: null, guestId: null };
   });
   section.append(artLayer, tag, rooms);
   byId("floors").prepend(section);
@@ -545,7 +611,7 @@ function renderRooms() {
   for (const [floor, view] of floorViews.entries()) {
     let leaves = 0;
     for (const room of view.views) {
-      const { slot, button, badge, wish, viewTag, restTag, windowView } = room;
+      const { slot, button, badge, wish, viewTag, restTag, windowView, decor } = room;
       const guest = game.rooms[slot];
       const chosen = guest && guest.id === activeGuest;
       const renewed = guest && guest.id === game.renewal;
@@ -558,7 +624,10 @@ function renderRooms() {
       restTag.textContent = game.business.restStreak && game.business.restRoom === slot ? "歇脚 1/2" : "歇脚";
       button.classList.toggle("view-room", !viewTag.hidden);
       button.classList.toggle("rest-room", !restTag.hidden);
-      const label = roomName(slot) + (!viewTag.hidden ? "观景房" : !restTag.hidden ? "歇脚房" : "");
+      const item = roomFurnishing(game.hospitality,slot);
+      decor.hidden = !item;
+      decor.className = item ? `room-decoration furniture-icon furniture-${item.icon}` : "room-decoration";
+      const label = roomName(slot) + (!viewTag.hidden ? "观景房" : !restTag.hidden ? "歇脚房" : "") + (item ? ` · ${item.name}` : "");
       button.setAttribute("aria-label", guest ? `${animals[guest.kind].name}，${label}，${renewed ? "已续住" : `剩 ${guest.nights} 晚`}` : `${label}，空房`);
       if ((guest?.id ?? null) !== room.guestId) {
         room.image?.remove();
@@ -646,15 +715,15 @@ function renderRenewForecast(guest) {
     return row;
   }));
   const blocked = ordersFor(tomorrow, game.trail, game).find(order =>
-    order.themed && !bookingRestriction(order, release.nextRooms, game.viewRoom)
-      && bookingRestriction(order, keep.nextRooms, game.viewRoom));
+    order.themed && !bookingRestriction(order, release.nextRooms, game.viewRoom, [], game.hospitality)
+      && bookingRestriction(order, keep.nextRooms, game.viewRoom, [], game.hospitality));
   if (blocked) forecast.append(create("p", "forecast-warn", `续住会让「${blocked.name}」明晚接不下。`));
   const upcoming = outstandingCommission(game.business, tomorrow);
   if (upcoming?.night > tomorrow) {
     const ahead = upcoming.night - tomorrow;
     const order = commissionOrder(upcoming);
-    if (!bookingRestriction(order, stayUntil(release.nextRooms, ahead), game.viewRoom)
-        && bookingRestriction(order, stayUntil(keep.nextRooms, ahead), game.viewRoom)) {
+    if (!bookingRestriction(order, stayUntil(release.nextRooms, ahead), game.viewRoom, [], game.hospitality)
+        && bookingRestriction(order, stayUntil(keep.nextRooms, ahead), game.viewRoom, [], game.hospitality)) {
       forecast.append(create("p", "forecast-warn", `续住会占用「${upcoming.name}」需要的客房。`));
     }
   }
@@ -674,6 +743,14 @@ function renderGuestCard() {
   const rules = guestRules(guest);
   byId("guestRules").hidden = !rules.length;
   fillRules(byId("guestRules"), rules);
+  const currentEffects = byId("guestLodging");
+  const slot = game.rooms.indexOf(guest);
+  const item = roomFurnishing(game.hospitality,slot);
+  currentEffects.hidden = !item;
+  if (item) {
+    const review = lodgingMemory(guest,slot,game,0);
+    currentEffects.textContent = `${item.name} · ${review.mood==="fine" ? "适合普通入住" : review.detail.replace("上次","")}`;
+  }
   const renewed = game.renewal === guest.id;
   const eligible = !waiting && canRenew(guest, game);
   byId("renew").hidden = !eligible;
@@ -717,6 +794,14 @@ function render() {
     const free = future.filter(room => !room).length;
     appointmentPrompt.textContent = `双人预约 · 需 2 间 / 预计空 ${free} 间`;
   }
+  const visitor = game.hospitality.todayVisit;
+  const visitToday = byId("visitToday");
+  visitToday.hidden = !visitor || !roomActionsOpen(game);
+  if (visitor) visitToday.textContent = `${animals[visitor.kind].name}来小屋做客`;
+  const lobby = byId("lobbyDisplay");
+  const display = furnishings[game.hospitality.showcase];
+  lobby.hidden = !display;
+  if (display) lobby.replaceChildren(furnitureIcon(display.icon),create("span","",display.name));
   byId("settleText").textContent = ({ planning: "接今晚的单", arrivals: "客人入住中", receipt: "查看今晚账单", bookings: "查看明晚订单", failed: "查看欠租账单", won: "查看通关账单" })[game.phase] ?? "结算今晚";
   const expected = byId("expected");
   expected.hidden = game.phase !== "day";
@@ -763,7 +848,8 @@ function renderJournal() {
     const row = create("li", channels.includes(key) ? "partner-active" : "");
     const descriptions = key === "short"
       ? ["会带来额外短住单，并邀请你接待溪湾集会。", `完成一张双人单，或在歇脚房连续接待两晚短住客（${restStreak}/2）。`]
-      : ["会带来需要观景房的长住单，以及候鸟小团。", `让水獭或小白鹭住进观景房两晚（${viewNights}/2）。`];
+      : key === "view" ? ["会带来需要观景房的长住单，以及候鸟小团。", `让水獭或小白鹭住进观景房两晚（${viewNights}/2）。`]
+        : ["会持续带来喜欢花房的短住客。", "准备两间有花景的客房，接成第三周的花友双人单。"];
     row.append(create("strong", "", name), create("span", "", channels.includes(key) ? "合作中" : "待合作"),
       create("p", "", descriptions[channels.includes(key) ? 0 : 1]));
     return row;
@@ -813,7 +899,8 @@ function makeSachet() {
 function greet() {
   if (game.phase !== "arrivals") return;
   const count = game.queue.length;
-  game.rooms = allocation(game.rooms, game.queue, game.viewRoom, game.business.restRoom);
+  game.rooms = allocation(game.rooms, game.queue, game.viewRoom, game.business.restRoom, game.hospitality, game.roomChoice);
+  game.roomChoice = null;
   game.queue = [];
   game.phase = "day";
   save();
@@ -951,12 +1038,14 @@ function scrollToExpansion() {
 
 function settle() {
   if (game.phase !== "day") return;
+  unlockBell();
   activeGuest = null;
   const { date } = dateFor(game.night);
   const result = planNight(game);
   game.wallet += result.coins;
   game.trail = result.trail;
   game.business = result.business;
+  game.hospitality = result.hospitality;
   const due = date === weekLength ? game.rent : 0;
   game.result = { ...result, due, paid: false };
   if (game.wallet < due) game.phase = "failed";
@@ -964,12 +1053,10 @@ function settle() {
   else enterBookingPhase();
   save();
   render();
-  if (game.phase === "bookings") {
-    openPhone();
-    return;
-  }
-  renderReceipt();
-  show("receipt");
+  showTurn(true, result, () => {
+    if (game.phase === "bookings") openPhone();
+    else { renderReceipt(); show("receipt"); }
+  });
 }
 
 function renderReceipt() {
@@ -1008,7 +1095,7 @@ function payoutRows({ roomCoins, lines, prepayments = [] }) {
   return payments.map(receiptEntry);
 }
 
-function receiptEntry({ kind, label, amount }) {
+function receiptEntry({ kind, label, amount, resource = "coin" }) {
   const row = create("li", "payout");
   if (kind) row.append(makeSprite(kind, "receipt-avatar"));
   else {
@@ -1017,7 +1104,12 @@ function receiptEntry({ kind, label, amount }) {
     room.setAttribute("aria-hidden", "true");
     row.append(room);
   }
-  row.append(create("span", "entry-name", label), valueWithIcon(amount.split(" ")[0]));
+  row.append(create("span", "entry-name", label));
+  if (amount) {
+    const worth = valueWithIcon(amount.split(" ")[0],resource);
+    worth.classList.toggle("negative",amount.startsWith("-"));
+    row.append(worth);
+  }
   return row;
 }
 
@@ -1042,8 +1134,7 @@ function receiptNext() {
     return;
   }
   if (game.phase === "won") {
-    dialog("receipt").close();
-    start(game.business.channels, game.business.season + 1);
+    openKeepsakes();
     return;
   }
   if (game.result.due > 0 && !game.result.paid) {
@@ -1062,7 +1153,7 @@ function getPhoneContext() {
     offers: ordersFor(game.night, game.trail, game) };
   const night = game.night + 1;
   const mode = game.phase === "bookings" ? "confirm" : "preview";
-  const result = game.result ?? planNight({ ...game, rooms: allocation(game.rooms, game.queue, game.viewRoom, game.business.restRoom) });
+  const result = game.result ?? planNight({ ...game, rooms: allocation(game.rooms, game.queue, game.viewRoom, game.business.restRoom, game.hospitality, game.roomChoice) });
   const offers = ordersFor(night, game.trail, { referral: result.referral, heldButterfly: game.carryButterfly, business: game.business });
   return { mode, night, rooms: result.nextRooms, offers };
 }
@@ -1071,7 +1162,7 @@ function enterBookingPhase() {
   game.phase = "bookings";
   const { rooms, offers } = getPhoneContext();
   const arrival = offers.find(order => order.commission);
-  game.picks = arrival && !bookingRestriction(arrival, rooms, game.viewRoom) ? [arrival.id] : [];
+  game.picks = arrival && !bookingRestriction(arrival, rooms, game.viewRoom, [], game.hospitality) ? [arrival.id] : [];
 }
 
 function buildOrderCards(offers) {
@@ -1106,7 +1197,7 @@ function buildOrderCards(offers) {
       row.append(create("p", "themed-description", order.description));
       return { order, row, button, restriction: row.appendChild(create("p", "booking-restriction")) };
     }
-    const restriction = first.needsView ? row.appendChild(create("p", "booking-restriction")) : null;
+    const restriction = first.needsView || first.needsFlower ? row.appendChild(create("p", "booking-restriction")) : null;
     return { order, row, button, restriction };
   });
   byId("orderList").replaceChildren(...orderViews.map(({ row }) => row));
@@ -1114,13 +1205,13 @@ function buildOrderCards(offers) {
 
 function renderCommissionCards(night, rooms) {
   const list = byId("phoneCommissions");
-  const offers = upcomingCommissions(night, game.business);
+  const offers = upcomingCommissions(night, game.business, game.hospitality);
   list.hidden = !offers.length;
   list.replaceChildren(...offers.map(commission => {
     const reserved = game.business.reservations[commission.id] === "reserved";
     const future = stayUntil(rooms, commission.night - night);
     const free = future.filter(room => !room).length;
-    const reason = bookingRestriction(commissionOrder(commission), future, game.viewRoom);
+    const reason = bookingRestriction(commissionOrder(commission), future, game.viewRoom, [], game.hospitality);
     const card = create("article", `commission-card${reserved ? " reserved" : ""}`);
     const heading = create("div", "commission-head");
     const reward = create("span", "commission-reward", "谢礼 ");
@@ -1130,7 +1221,7 @@ function renderCommissionCards(night, rooms) {
       `${nightText(commission.night)} 到店 · 各住 ${commission.nights} 晚`);
     const party = create("p", "commission-date", commission.guests.map(kind => animals[kind].name).join("、"));
     const space = create("p", `commission-space${reason ? " blocked" : ""}`,
-      `需要 2 间 / 预计空 ${free} 间${commission.view ? " · 含观景房" : ""}`);
+      `需要 2 间 / 预计空 ${free} 间${commission.view ? " · 含观景房" : commission.flowers ? " · 都要有花景" : ""}`);
     if (reason) space.append(document.createTextNode(`（${free < 2 ? "空房不足" : reason}）`));
     const action = create("button", "wood", reserved ? "已预约 · 可取消" : "提前预约");
     action.type = "button";
@@ -1145,12 +1236,12 @@ function renderCommissionCards(night, rooms) {
 
 function toggleCommission(id) {
   const { night } = getPhoneContext();
-  const available = upcomingCommissions(night, game.business);
+  const available = upcomingCommissions(night, game.business, game.hospitality);
   if (!available.some(commission => commission.id === id)) return;
   const reservations = game.business.reservations;
   if (reservations[id] === "reserved") delete reservations[id];
   else {
-    for (const commission of available) {
+    for (const commission of available.filter(commission=>commission.night===commissionById.get(id).night)) {
       if (reservations[commission.id] === "reserved") delete reservations[commission.id];
     }
     reservations[id] = "reserved";
@@ -1190,19 +1281,23 @@ function renderPhone() {
   byId("phoneClose").setAttribute("aria-label", mode === "confirm" ? "关闭手机并开始下一天" : "关闭手机");
   const selected = preview ? [] : reservedGuests(offers, game.picks);
   const picks = selected.length;
-  const projectedRooms = allocation(rooms, selected, game.viewRoom, game.business.restRoom);
+  const projectedRooms = allocation(rooms, selected, game.viewRoom, game.business.restRoom, game.hospitality, game.roomChoice);
   renderCommissionCards(night, projectedRooms);
   const estimateLabel = byId("phoneEstimate");
   estimateLabel.hidden = preview || (!picks && !rooms.some(Boolean));
   if (!estimateLabel.hidden) {
-    const { coins, roomCoins } = planNight({ ...game, night, rooms: projectedRooms }, null);
+    const { coins, roomCoins, effects } = planNight({ ...game, night, rooms: projectedRooms }, null);
     estimateLabel.replaceChildren(document.createTextNode(mode === "opening" ? "今晚预计 " : "明晚预计 "), valueWithIcon(`+${coins}`));
     const bonus = coins - roomCoins;
     if (bonus) {
-      const tag = create("span", "estimate-bonus", "含加成 ");
-      tag.append(valueWithIcon(`+${bonus}`, "coin", false));
+      const tag = create("span", "estimate-bonus", bonus>0 ? "含加成 " : "含扣减 ");
+      tag.append(valueWithIcon(`${bonus>0?"+":""}${bonus}`, "coin", false));
       estimateLabel.append(tag);
     }
+    renderRoomPlan(rooms, selected, projectedRooms, effects);
+  } else {
+    byId("phoneRoomPlans").hidden = true;
+    byId("phoneLodgingForecast").hidden = true;
   }
   byId("phoneForecast").textContent = final ? "今晚是开店季最后一晚。" : `${nightText(night)} · ${preview ? `预计空房 ${available} 间` : `已接 ${picks} / ${available} 位`}`;
   const staying = guestNames(rooms);
@@ -1215,7 +1310,7 @@ function renderPhone() {
     : picks ? `接待 ${picks} 位 · 开始下一天` : "不接新客 · 开始下一天";
   for (const { order, row, button, restriction } of orderViews) {
     const picked = game.picks.includes(order.id) && !preview;
-    const reason = picked ? "" : bookingRestriction(order, rooms, game.viewRoom, selected);
+    const reason = picked ? "" : bookingRestriction(order, rooms, game.viewRoom, selected, game.hospitality);
     row.classList.toggle("accepted", picked);
     button.hidden = preview;
     button.disabled = preview || Boolean(reason);
@@ -1225,7 +1320,8 @@ function renderPhone() {
     button.setAttribute("aria-label", picked ? `取消${label}的订单` : `接单：${label}`);
     if (restriction) {
       const view = order.guests.some(guest => guest.needsView);
-      const needs = order.guests.length === 1 ? "需要 1 间观景房" : `需要 2 间空房${view ? "，含 1 间观景房" : ""}`;
+      const flowers = order.guests.some(guest => guest.needsFlower);
+      const needs = flowers ? `需要 ${order.guests.length} 间花房` : order.guests.length === 1 ? "需要 1 间观景房" : `需要 2 间空房${view ? "，含 1 间观景房" : ""}`;
       restriction.textContent = [needs, reason].filter(Boolean).join(" · ");
       restriction.classList.toggle("blocked", Boolean(reason));
     }
@@ -1243,7 +1339,7 @@ function toggleOrder(id) {
   if (game.picks.includes(id)) game.picks = game.picks.filter(pick => pick !== id);
   else {
     const order = offers.find(offer => offer.id === id);
-    if (!order || bookingRestriction(order, rooms, game.viewRoom, reservedGuests(offers, game.picks))) return;
+    if (!order || bookingRestriction(order, rooms, game.viewRoom, reservedGuests(offers, game.picks), game.hospitality)) return;
     game.picks.push(id);
   }
   save();
@@ -1256,7 +1352,7 @@ function beginArrivals(picks) {
   game.carryButterfly = skippedButterfly?.nights ?? null;
   game.queue = [];
   for (const order of offers.filter(offer => picks.includes(offer.id))) {
-    if (!bookingRestriction(order, game.rooms, game.viewRoom, game.queue)) game.queue.push(...order.guests);
+    if (!bookingRestriction(order, game.rooms, game.viewRoom, game.queue, game.hospitality)) game.queue.push(...order.guests);
   }
   const appointment = offers.find(order => order.commission);
   if (appointment) {
@@ -1267,11 +1363,13 @@ function beginArrivals(picks) {
     returnBooked: game.trail.returnBooked || game.queue.some(guest => guest.trip === "return"),
     birdBooked: game.trail.birdBooked || game.queue.some(guest => guest.trip === "bird") };
   game.picks = [];
+  if (!game.queue.length) game.roomChoice = null;
   game.phase = game.queue.length ? "arrivals" : "day";
+  receiveVisit(game);
   activeGuest = null;
   save();
   render();
-  scheduleArrival();
+  showTurn(false, null, () => { if (game.phase === "arrivals") greet(); });
 }
 
 function advance() {
@@ -1308,10 +1406,12 @@ byId("buildConfirm").addEventListener("click", buildFloor);
 byId("receiptNext").addEventListener("click", receiptNext);
 byId("receipt").addEventListener("cancel", event => event.preventDefault());
 byId("phoneButton").addEventListener("click", openPhone);
-byId("phoneClose").addEventListener("click", () => dialog("phone").close());
+byId("phoneClose").addEventListener("click", () => { unlockBell(); dialog("phone").close(); });
 byId("phoneDone").addEventListener("click", () => {
-  if (game.phase === "planning") beginArrivals(game.picks);
+  unlockBell();
+  const opening = game.phase === "planning";
   dialog("phone").close();
+  if (opening) beginArrivals(game.picks);
 });
 byId("phone").addEventListener("close", () => {
   if (game.phase === "bookings") advance();
@@ -1323,11 +1423,14 @@ byId("restartConfirm").addEventListener("click", () => {
   dialog("receipt").close();
   start();
 });
+initHospitality();
 const saved = restore();
 if (saved) {
   ({ game, checkpoint } = saved);
   game.business ??= newBusiness();
   checkpoint.business ??= newBusiness();
+  game.hospitality ??= newHospitality();
+  checkpoint.hospitality ??= newHospitality();
   save();
   render();
   scheduleArrival();

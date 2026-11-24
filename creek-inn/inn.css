@@ -527,3 +527,133 @@ dialog::backdrop { background:#293b3385; }
 .renew-forecast .forecast-warn {
   grid-column:1/-1; padding:3px 5px; border-radius:5px; background:#f5dfb5; color:#86532e;
 }
+.dock-actions { grid-template-columns:repeat(3,37px) minmax(0,1fr) 38px; gap:5px; }
+.owner-icon {
+  display:block; width:18px; height:20px; border:1.5px solid #916345; border-radius:11px 11px 3px 3px;
+  background:radial-gradient(circle at 70% 62%,#f8d68f 0 9%,transparent 11%),repeating-linear-gradient(90deg,#bb8054 0 4px,#cf9767 4px 7px);
+  box-shadow:inset 0 0 0 2px #dfb77b;
+}
+.flower-bud { display:inline-block; width:.86em; height:.86em; border:1px solid #7c8c58; border-radius:68% 30% 55% 40%; background:#b8cc79; transform:rotate(-24deg); }
+.negative { color:#a14230 !important; }
+.guest-lodging { margin-top:5px; padding:3px 6px; border-radius:5px; background:#f8e8bf; }
+.phone-head h2 { margin-right:auto; white-space:nowrap; font-size:clamp(14px,4.5vw,21px); }
+.phone-shortcut {
+  flex:none; padding:3px 4px; border:1px solid #a7b379; border-radius:6px;
+  background:#f8efcb; color:#506342; font-size:11px; font-weight:750; white-space:nowrap;
+}
+.lodging-forecast { max-height:52px; overflow:auto; flex:none; background:#f8edc7; border-color:#d4b775; }
+.phone-room-plans {
+  margin:4px 8px 0; padding:3px 6px; border:1px solid #b2bd82; border-radius:6px; color:#506044; background:#eef0ce;
+  max-height:min(120px,22dvh); overflow:auto; flex:none; font-size:10px;
+}
+.phone-room-plans summary { font-weight:750; cursor:pointer; }
+#phoneAssigned { margin:3px 0; padding-left:14px; }
+#phoneMove { display:flex; align-items:center; flex-wrap:wrap; gap:4px; }
+#phoneMove .wood { font-size:10px; }
+#phoneMove select,.hospitality-picker select {
+  min-width:0; max-width:100%; border:1px solid #af8b5d; border-radius:5px; color:var(--ink); background:#fff9e4;
+  padding:3px; font:inherit;
+}
+#hospitality { overflow:hidden; }
+.hospitality-layout { display:flex; flex-direction:column; max-height:min(670px,calc(100dvh - 30px)); }
+.hospitality-head,.hospitality-nav { display:flex; align-items:center; justify-content:space-between; gap:5px; padding:8px 11px; }
+.hospitality-head { background:#e6edc6; border-bottom:1px solid #adb982; }
+#hospitalityWallet { display:flex; gap:9px; margin-top:3px; color:#6c5233; font-size:12px; }
+.hospitality-nav { justify-content:flex-start; flex-wrap:wrap; padding-block:7px; }
+.hospitality-nav .wood { font-size:11px; padding:4px 7px; }
+.hospitality-nav button[aria-pressed=true] { color:#fff6d6; background:#657d50; border-color:#4d6641; }
+.hospitality-scroll { overflow:auto; min-height:0; padding:0 11px 6px; }
+.hospitality-picker { display:flex; align-items:center; gap:7px; margin:6px 0; font-size:12px; font-weight:740; }
+.hospitality-card {
+  display:grid; grid-template-columns:32px minmax(0,1fr); gap:4px 8px; align-items:center;
+  padding:7px; margin:6px 0; border:1px solid #d7bd86; border-radius:10px; background:#fff9e5;
+}
+.hospitality-copy strong { color:#536044; font-size:13px; }
+.hospitality-copy p { color:#655439; font-size:11px; margin-top:2px; line-height:1.4; }
+.hospitality-actions { grid-column:2/-1; display:flex; align-items:center; gap:4px 6px; flex-wrap:wrap; }
+.hospitality-actions .wood { font-size:11px; padding:3px 5px; }
+.hospitality-status { padding:5px 11px; color:#4b664b; background:#edf0ce; font-size:11px; }
+.hospitality-status:empty { display:none; }
+.friend-avatar { width:32px; height:40px; object-fit:contain; }
+.friend-mood { display:inline-block; margin-top:4px; padding:2px 4px; border-radius:4px; font-size:10px; background:#f1e5bd; }
+.friend-mood.good { background:#e3ecc4; color:#4d6740; }
+.friend-mood.poor { background:#f8dfc2; color:#923f34; }
+.friend-reason,.friend-summary,.visit-note { color:#5b6345; font-size:12px; line-height:1.4; }
+.visit-note { padding:5px 7px; background:#eee8c6; border-radius:6px; }
+.owner-room {
+  position:relative; isolation:isolate; height:144px; overflow:hidden; border:1px solid #af855a; border-radius:9px;
+  box-shadow:inset 6px 0 #b98c626b,inset -6px 0 #b98c626b,inset 0 5px #e7c582;
+  background:linear-gradient(180deg,transparent 69%,#ad774b 69% 71%,#f0c58e 71% 100%),
+    repeating-linear-gradient(90deg,#f5e0ac 0 14px,#f1d8a4 14px 25px);
+}
+.owner-room::before {
+  content:""; position:absolute; left:13%; top:14%; width:47px; height:55px; border:3px solid #9c7048; border-radius:22px 22px 5px 5px;
+  background:linear-gradient(90deg,transparent 46%,#af8054 46% 54%,transparent 54%),linear-gradient(0deg,#aac08b 32%,#c1ded3 32%);
+  box-shadow:inset 0 0 0 2px #f0ce89,0 3px #a87447;
+}
+.owner-room::after {
+  content:""; position:absolute; z-index:-1; inset:auto 14% 8%; height:21%; border:1px solid #cd9b65; border-radius:50%;
+  background:#edda9e;
+}
+.owner-room-label { position:absolute; bottom:5px; left:8px; font-size:11px; padding:3px 6px; background:#fff3cf; border:1px solid #b38a58; border-radius:5px; }
+.owner-seat { position:absolute; right:20%; bottom:20%; width:62px; height:39px; border:2px solid #99683f; border-radius:17px 19px 7px 8px; background:#e4ae75; box-shadow:inset 0 -8px #b17d54; display:grid; place-items:center; }
+.owner-seat::before,.owner-seat::after { content:""; position:absolute; bottom:-10px; width:5px; height:9px; background:#a6784d; border-radius:0 0 2px 2px; }
+.owner-seat::before { left:6px; }.owner-seat::after { right:6px; }
+.owner-room > .furniture-icon { position:absolute; bottom:19%; right:11%; }
+.owner-visitor { position:absolute; bottom:11%; left:29%; width:67px; height:65px; object-fit:contain; }
+.owner-memory {
+  position:absolute; top:11px; right:9px; max-width:59%; padding:4px 7px; border:1px solid #caad75; border-radius:10px;
+  background:#fff7d8; color:#64553b; font-size:11px; line-height:1.4;
+}
+.furniture-icon {
+  display:inline-block; position:relative; width:23px; height:24px; flex:none; vertical-align:middle;
+  color:#826142; pointer-events:none;
+}
+.furniture-flower::before,.furniture-flower::after {
+  content:""; position:absolute; left:18%; right:18%; bottom:5%; height:40%;
+  border:1.5px solid #8e5c43; border-radius:2px 2px 6px 6px; background:#d18a5d;
+}
+.furniture-flower::before {
+  inset:4% 7% auto; height:58%; border:0;
+  background:radial-gradient(circle at 31% 38%,#f8d789 0 12%,transparent 14%),radial-gradient(circle at 68% 32%,#ebb194 0 13%,transparent 15%),radial-gradient(ellipse at 50% 80%,#89a261 0 45%,transparent 48%);
+}
+.furniture-window { border:2px solid #976b46; border-radius:9px 9px 3px 3px; background:linear-gradient(90deg,transparent 44%,#b8885c 44% 55%,transparent 55%),linear-gradient(#b4d6c3 55%,#e4b889 56%); }
+.furniture-curtain { border:2px solid #93674b; border-radius:4px 4px 5px 5px; background:repeating-linear-gradient(90deg,#b78fab 0 4px,#d1a4ba 4px 7px); }
+.furniture-water,.furniture-cushion { height:15px; border:2px solid #8c6549; border-radius:50% 50% 40% 40%; background:radial-gradient(ellipse at 50% 30%,#b6e0d5 0 55%,#7fa8a4 57%); }
+.furniture-cushion { background:repeating-linear-gradient(38deg,#e9c67d 0 3px,#f8dda1 3px 6px); }
+.furniture-map { height:19px; border:1.5px solid #946b4b; border-radius:5px 1px 3px 5px; background:linear-gradient(30deg,#f6dca0 35%,#86b9ab 35% 50%,#f6dca0 51%); rotate:-9deg; }
+.furniture-lamp { height:22px; border:2px solid #967047; border-radius:11px 11px 6px 6px; background:radial-gradient(circle at 50% 55%,#fff7c7 0 32%,#e7af5d 70%); }
+.room-decoration { position:absolute; z-index:2; left:5%; bottom:8%; width:clamp(12px,5cqw,24px); height:clamp(12px,4.8cqw,24px); }
+.lobby-display {
+  position:absolute; top:8%; right:6%; display:grid; justify-items:center; gap:2px; padding:5px 7px;
+  border:1px solid #aa8350; border-radius:9px 12px 8px 9px; background:#fff0c9;
+  color:#705239; font-size:10px; font-weight:750; box-shadow:0 2px #94734754;
+}
+.room-reward { position:absolute; z-index:5; left:50%; bottom:43%; translate:-50% 0; pointer-events:none;
+  padding:2px 5px; background:#fff6d3; border:1px solid #bd945a; border-radius:6px; color:#587246; font-size:10px; white-space:nowrap; font-weight:850;
+  animation:room-reward .88s ease-out both;
+}
+@keyframes room-reward { from { transform:translateY(8px); opacity:.2; } 35% { opacity:1; } to { transform:translateY(-20px); } }
+.turn { width:min(286px,calc(100vw - 38px)); padding:0; border:1.5px solid #ab7946; border-radius:25px; background:#fff0c9; box-shadow:0 8px #785b3c45,0 14px 36px #3b39275b; }
+.turn::backdrop { background:#f8e7a747; }
+.turn.closing { background:#f4dfb5; }
+.turn.closing::backdrop { background:#212b36a0; }
+.turn button { display:grid; place-items:center; gap:5px; width:100%; padding:14px 10px 17px; border:0; background:none; }
+.turn strong { font:850 clamp(23px,6vw,31px)/1.2 var(--serif); color:#536345; }
+.turn small,.turn span { color:#775334; font-size:13px; }
+.turn-visitor { display:flex; align-items:center; justify-content:center; gap:4px; }
+.turn-visitor .friend-avatar { animation:visitor-hello .65s ease-out both; }
+@keyframes visitor-hello { from { transform:translateX(-14px); opacity:0; } 60% { transform:translateX(3px); } }
+.turn-bell {
+  position:relative; width:38px; height:38px; margin:5px 0 8px; border:2px solid #9b632f; border-radius:47% 47% 24% 24%;
+  background:linear-gradient(108deg,#e0a24e 12%,#fff0b3 40%,#e4ae5c 74%);
+  transform-origin:top center; animation:bell-swing .61s ease-in-out both;
+}
+.turn-bell::before,.turn-bell::after { content:""; position:absolute; background:#bc813d; border:1px solid #9b632f; }
+.turn-bell::before { width:8px; height:8px; left:12px; top:-8px; border-radius:50%; }
+.turn-bell::after { height:7px; left:-7px; right:-7px; bottom:-1px; border-radius:6px; }
+@keyframes bell-swing { 0%,100% { rotate:0deg; } 23% { rotate:19deg; } 47% { rotate:-17deg; } 71% { rotate:10deg; } }
+@media (max-height:590px) {
+  .lodging-forecast { max-height:34px; }
+  .phone-room-plans { max-height:62px; }
+}
