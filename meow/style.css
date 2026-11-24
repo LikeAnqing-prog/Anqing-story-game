@@ -122,3 +122,14 @@
 .deploy-label .team-flag{width:12px;height:10px;margin-right:1px}
 .deploy-cell .range-mark{display:block;font-size:12px;font-weight:bold;line-height:1;color:#354338}.deploy-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:1;pointer-events:none;font-weight:bold}
 .deploy-pick small{font-size:10px;color:#766249;line-height:1.4}.deploy-picker-modal .modal-icon{display:none}.deploy-picker-filters{display:flex;gap:2px;margin:10px 0}.deploy-picker-filters>.btn{flex:1;min-width:0;font-size:12px;padding:6px 1px;min-height:38px}.deploy-picker-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.deploy-replacement{display:flex;flex-direction:column;align-items:center;min-width:0;padding:12px 8px;gap:3px}.modal .deploy-replacement .sprite{width:82px;height:82px;margin:0;animation:none}.deploy-replacement strong{font-size:16px;overflow-wrap:anywhere}.deploy-replacement>span:not(.art):not(.sprite){font-size:12px}.deploy-replacement small{font-size:11px;color:#52653e}.deploy-replacement.on-team{opacity:.55}.deploy-picker-list .empty-message{grid-column:1/-1;font-size:14px}.deploy-picker-modal .modal-footer>.btn{font-size:16px;margin-top:10px}
+
+/* v13.2: one-level navigation and board-local controls */
+.headline .back{overflow:visible}.headline .back>span:last-child{position:absolute;top:100%;left:-8px;right:-8px;font-size:10px;line-height:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px #fff6db}.headline .back .icon{flex-shrink:0}
+.modal .modal-scroll{padding-top:58px}.modal-back{position:absolute;top:9px;left:14px;z-index:5;display:flex;align-items:center;gap:3px;max-width:calc(100% - 115px);height:40px;font-size:12px}.modal-back .icon{width:23px;height:23px;flex-shrink:0}.modal-back>span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.cat-detail-modal>.favorite-toggle{left:auto;right:49px;top:7px}.modal-close{top:9px!important;right:12px!important}
+.deployment-board-tools{max-width:370px;margin:0 auto}.deployment-board-tools .deployment-inspector{min-height:0;padding:5px 0 2px;line-height:1.4}.deployment-inspector strong{font-size:14px}.deployment-board-tools .deployment-inspector p{margin:2px 0;font-size:12px}.deployment-range-tabs{margin:2px 0 4px}.deployment-range-tabs>.btn{flex:1;min-height:40px}.deployment-skill-detail{font-size:12px;margin:6px 0}.deployment-skill-detail summary{cursor:pointer;padding:6px 0}.deployment-cats{margin-bottom:3px}.deployment-note{max-width:370px;margin:5px auto}
+
+.modal-close>span:last-child{display:block;font-size:10px;line-height:12px;color:#5f5847}.modal-close .icon{width:23px;height:23px}.modal-close{height:40px!important}
+
+.modal>.modal-back{position:absolute!important;z-index:5!important}
+
+.deploy-picker-modal .modal-icon,.mutation-picker-modal .modal-icon{display:none}
