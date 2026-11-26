@@ -41,7 +41,6 @@
     if(s.dryStreak!==undefined&&(!Number.isInteger(s.dryStreak)||s.dryStreak<0||s.dryStreak>7))return false;
     if(s.geneNotes!==undefined&&(!Number.isInteger(s.geneNotes)||s.geneNotes<0))return false;
     if(s.trailBest!==undefined&&(!Number.isInteger(s.trailBest)||s.trailBest<0||s.trailBest>10000))return false;
-    if(s.tactic!==undefined&&!TACTICS.some(t=>t.id===s.tactic))return false;
     if(s.targetLook!==undefined&&s.targetLook!==null&&!/^[0-2]-[0-2]-[0-1]$/.test(s.targetLook))return false;
     if(s.geneGuestClaimed!==undefined&&typeof s.geneGuestClaimed!=='boolean')return false;
     if(s.stageStars!==undefined&&(!s.stageStars||Array.isArray(s.stageStars)||typeof s.stageStars!=='object'||Object.entries(s.stageStars).some(([k,v])=>!/^([1-9]|10)$/.test(k)||!Number.isInteger(v)||v<0||v>3)))return false;
@@ -98,10 +97,9 @@
     const max=Math.min(10,(s.cleared.length?Math.max(...s.cleared):0)+1);if(!Number.isInteger(level)||level<1||level>max)throw Error('先完成前面的试炼。');
     const places=deployment(s);const units=team.map((base,i)=>{const c=trained(base);return {...c,uid:'p'+i,side:0,life:c.hp,maxHp:c.hp,shield:(i===0?20:0)+Growth.shield(c),poison:0,isVanguard:i===0,...places[i]};});
     const rule=encounter(s,level,mode),floor=mode==='trail'?rule.floor:0;
-    if(s.tactic==='guard')units[0].shield+=15;
     for(let i=0;i<3;i++){let hp=74+level*12+floor*7;units.push({id:-i-1,uid:'e'+i,side:1,name:['竹团','灰灰','阿斑'][i],color:(i+level)%3,pattern:i,ears:i%2,skill:rule.skills[i],hp,life:hp,maxHp:hp,atk:11+level*3+Math.floor(floor/2),speed:6+level+i+Math.floor(floor/5),shield:rule.shield||0,poison:0,mutation:null,rareGene:null,x:i*2,y:0});}
     for(const u of units.filter(u=>u.side===0)){if(Growth.pathSkill(u,'guardian')){const friend=units.filter(a=>a.side===u.side&&a.uid!==u.uid).sort((a,z)=>a.maxHp-z.maxHp)[0];if(friend)friend.shield+=12;}if(u.mutation===4){const friend=units.filter(a=>a.side===u.side&&a.uid!==u.uid).sort((a,z)=>a.maxHp-z.maxHp)[0];if(friend)friend.shield+=Math.round(18*Growth.support(u));}if(u.rareGene===0)for(const ally of units.filter(a=>a.side===0))ally.shield+=Math.round(10*Growth.support(u));if(u.rareGene===4)for(const ally of units.filter(a=>a.side===0))ally.speed+=2;}
-    return {blocks:[{x:2,y:2}],challengeId:challenge?.id||null,level,mode,floor,tactic:s.tactic,rule:challenge?challenge.name+' · '+challenge.tier+'阶':rule.name,units,round:1,queue:[],log:[],result:null,settled:false,last:null,turn:0};
+    return {blocks:[{x:2,y:2}],challengeId:challenge?.id||null,level,mode,floor,rule:challenge?challenge.name+' · '+challenge.tier+'阶':rule.name,units,round:1,queue:[],log:[],result:null,settled:false,last:null,turn:0};
   }
   function step(b,rng=Math.random){
     if(b.result)return b.last;
@@ -119,23 +117,23 @@
     if(Growth.pathSkill(actor,'guardian',1)){const used=actor.rescued||[],friend=alive(actor.side).filter(u=>u.uid!==actor.uid&&u.life/u.maxHp<=.4&&!used.includes(u.uid)).sort((a,z)=>a.life/a.maxHp-z.life/z.maxHp)[0];if(friend&&used.length<(actor.growthRank===2?2:1)){const shield=actor.growthRank===2?45:30;friend.shield+=shield;actor.taunt=Math.max(actor.taunt||0,2);actor.rescued=[...used,friend.uid];effects.push({uid:friend.uid,kind:'shield',amount:shield},{uid,kind:'rally',amount:0});log(actor.name+'挺身救援'+friend.name+'，添 '+shield+' 护盾并吸引敌人');}}
     if(actor.rareGene===2){const friend=alive(actor.side).sort((a,z)=>a.life/a.maxHp-z.life/z.maxHp)[0],amount=heal(friend,Math.round(8*Growth.support(actor)));if(amount)log(actor.name+'的莲息恢复 '+amount+' 生命');}
     const enemies=alive(1-actor.side);if(!enemies.length){check();return null;}
-    const tactic=b.tactic||'balanced',closest=enemies.filter(u=>distance(u,actor)===Math.min(...enemies.map(v=>distance(v,actor))));
+    const closest=enemies.filter(u=>distance(u,actor)===Math.min(...enemies.map(v=>distance(v,actor))));
     const provoking=enemies.filter(u=>u.taunt>0).sort((a,z)=>distance(a,actor)-distance(z,actor));
-    const target=provoking[0]||(actor.side===0&&tactic==='focus'?[...enemies].sort((a,z)=>a.life-z.life||distance(a,actor)-distance(z,actor))[0]:actor.side===1&&tactic==='guard'&&rng()<.35?enemies[0]:closest[Math.floor(rng()*closest.length)]);
+    const target=provoking[0]||closest[Math.floor(rng()*closest.length)];
     let amount=0,kind='attack',hitTarget=target;
     if(actor.skill===6&&ready){cast();actor.taunt=2;const shield=Math.round(30*Growth.support(actor));actor.shield+=shield;effects.push({uid,kind:'shield',amount:shield});log(actor.name+'摇铃挑衅，吸引敌人并获得 '+shield+' 护盾');return record(actor,shield,'taunt');}
     if(actor.skill===8&&ready){const friend=alive(actor.side).sort((a,z)=>Number(!!(z.poison||z.frozen||z.rooted))-Number(!!(a.poison||a.frozen||a.rooted))||a.life/a.maxHp-z.life/z.maxHp)[0];if(friend.poison||friend.frozen||friend.rooted||friend.life<friend.maxHp||Growth.pathSkill(actor,'healer',1)){cast();friend.poison=0;friend.frozen=0;friend.rooted=0;friend.regen=2;friend.regenPower=Math.round(8*Growth.support(actor));const healing=heal(friend,Math.round(8*Growth.support(actor)));effects.push({uid:friend.uid,kind:'cleanse',amount:0});log(actor.name+'净化'+friend.name+'，回春持续两次行动');return record(friend,healing,'cleanse');}}
     if(actor.skill===9&&ready){cast();for(const ally of alive(actor.side)){ally.fury=2;effects.push({uid:ally.uid,kind:'rally',amount:0});}log(actor.name+'鼓舞全队，下两次攻击行动伤害增加 25%');return record(actor,0,'rally');}
-    if((actor.skill===1||actor.skill===2)&&b.round%3===1&&(actor.skill===1||alive(actor.side).some(u=>u.life<u.maxHp||Growth.pathSkill(actor,'healer')&&u.poison)||Growth.pathSkill(actor,'healer',1))){const friend=alive(actor.side).sort((a,z)=>a.life/a.maxHp-z.life/z.maxHp||(Growth.pathSkill(actor,'healer')?Number(!!z.poison)-Number(!!a.poison):0))[0];hitTarget=friend;const bonus=(actor.side===0&&tactic==='balanced'?1.15:1)*Growth.support(actor);if(actor.skill===1){amount=Math.round(actor.atk*1.3*bonus);friend.shield+=amount;kind='shield';log(actor.name+'为'+friend.name+'添上 '+amount+' 护盾');}else{amount=heal(friend,Math.round((actor.atk*1.3+12)*bonus));kind='heal';log(actor.name+'为'+friend.name+'恢复 '+amount+' 生命');}}
+    if((actor.skill===1||actor.skill===2)&&b.round%3===1&&(actor.skill===1||alive(actor.side).some(u=>u.life<u.maxHp||Growth.pathSkill(actor,'healer')&&u.poison)||Growth.pathSkill(actor,'healer',1))){const friend=alive(actor.side).sort((a,z)=>a.life/a.maxHp-z.life/z.maxHp||(Growth.pathSkill(actor,'healer')?Number(!!z.poison)-Number(!!a.poison):0))[0];hitTarget=friend;const bonus=Growth.support(actor);if(actor.skill===1){amount=Math.round(actor.atk*1.3*bonus);friend.shield+=amount;kind='shield';log(actor.name+'为'+friend.name+'添上 '+amount+' 护盾');}else{amount=heal(friend,Math.round((actor.atk*1.3+12)*bonus));kind='heal';log(actor.name+'为'+friend.name+'恢复 '+amount+' 生命');}}
     else{
       path=approach(b,actor,target);if(path.length){Object.assign(actor,path.at(-1));if(actor.mutation===3){actor.springReady=true;log(actor.name+'的弹簧腿蓄好劲了');}if(actor.mutation===5&&actor.poison){actor.poison=0;effects.push({uid,kind:'cleanse',amount:0});log(actor.name+'拖尾一走，扫掉剩余毒伤');}}
       if(Number.isInteger(actor.x)&&(!canAttack(b,actor,target))){log(actor.name+(path.length?'接近敌人':'等待通路'));return record(target,0,'move');}
       const special=ready&&[7,10,11].includes(actor.skill),mult=special&&actor.skill===7?.5:special&&actor.skill===11?.6:1;if(special)cast();const furyBonus=actor.fury>0?1.25:1;if(actor.fury>0)actor.fury--;
       const openingBonus=Growth.pathSkill(actor,'hunter')&&(target.frozen>0||target.rooted>0)?1.2:1;if(openingBonus>1)log(actor.name+'抓住控制破绽，攻击增强');const springBonus=actor.springReady?1.35:1;actor.springReady=false;
       const count=actor.skill===0?2:actor.skill===4&&rng()<.25?2:1,starBonus=actor.rareGene===1&&!actor.starUsed?1.25:1;
-      for(let i=0;i<count&&target.life>0&&actor.life>0;i++){let d=Math.max(1,Math.round(actor.atk*(actor.skill===0?.65:1)*(actor.side===0&&tactic==='guard'?.95:actor.side===0&&tactic==='focus'?1.08:1)*(actor.side===1&&tactic==='guard'&&target.isVanguard?.9:1)*starBonus*(actor.firstStrikeUsed?1:Growth.firstStrike(actor))*mult*furyBonus*springBonus*openingBonus));const absorb=Math.min(target.shield,d);target.shield-=absorb;d-=absorb;d=Math.min(target.life,d);target.life-=d;amount+=d;if(target.skill===5&&target.life>0){let counter=Math.round(target.atk*.45*(actor.side===0&&tactic==='guard'&&actor.isVanguard?.9:1));const blocked=Math.min(actor.shield,counter);actor.shield-=blocked;counter=Math.min(actor.life,counter-blocked);actor.life-=counter;effects.push({uid:actor.uid,kind:'counter',amount:counter});log(target.name+'反击 '+counter);}}
+      for(let i=0;i<count&&target.life>0&&actor.life>0;i++){let d=Math.max(1,Math.round(actor.atk*(actor.skill===0?.65:1)*starBonus*(actor.firstStrikeUsed?1:Growth.firstStrike(actor))*mult*furyBonus*springBonus*openingBonus));const absorb=Math.min(target.shield,d);target.shield-=absorb;d-=absorb;d=Math.min(target.life,d);target.life-=d;amount+=d;if(target.skill===5&&target.life>0){let counter=Math.round(target.atk*.45);const blocked=Math.min(actor.shield,counter);actor.shield-=blocked;counter=Math.min(actor.life,counter-blocked);actor.life-=counter;effects.push({uid:actor.uid,kind:'counter',amount:counter});log(target.name+'反击 '+counter);}}
       if(actor.life>0&&target.life>0&&special){if(actor.skill===7){if(target.mutation===6&&!target.earGuardUsed){target.earGuardUsed=true;effects.push({uid:target.uid,kind:'cleanse',amount:0});log(target.name+'抖开长耳，挡下这次冰冻');}else if(!target.freezeWard){target.frozen=1;effects.push({uid:target.uid,kind:'freeze',amount:0});log(target.name+'被冰铃冻结');}else log(target.name+'刚刚解冻，抵抗了再冻结');}if(actor.skill===11){target.rooted=2;effects.push({uid:target.uid,kind:'root',amount:0});log(target.name+'被藤蔓定身两次行动');}if(actor.skill===10){const dx=target.x-actor.x,dy=target.y-actor.y,p={x:target.x+Math.sign(dx),y:target.y+Math.sign(dy)};if(target.mutation===7){log(target.name+'的方脑壳稳稳顶住，没有被推走');}else if(freeCell(b,p)){effects.push({uid:target.uid,kind:'push',amount:0,from:{x:target.x,y:target.y},to:p});Object.assign(target,p);log(target.name+'被推远一格');}else{const absorb=Math.min(target.shield,8);target.shield-=absorb;const d=Math.min(target.life,8-absorb);target.life-=d;amount+=d;log(target.name+'退路受阻，额外受到 '+d+' 伤害');}}}
-      if(actor.mutation===9&&actor.life>0&&target.life>0&&distance(actor,target)<=1){let bite=Math.max(1,Math.round(actor.atk*.3)),blocked=Math.min(target.shield,bite);target.shield-=blocked;bite=Math.min(target.life,bite-blocked);target.life-=bite;amount+=bite;log(actor.name+'的尾巴补了一嘴，造成 '+bite+' 伤害');if(target.skill===5&&target.life>0){let counter=Math.round(target.atk*.45*(actor.side===0&&tactic==='guard'&&actor.isVanguard?.9:1));const absorb=Math.min(actor.shield,counter);actor.shield-=absorb;counter=Math.min(actor.life,counter-absorb);actor.life-=counter;effects.push({uid,kind:'counter',amount:counter});log(target.name+'反击尾巴 '+counter);}}
+      if(actor.mutation===9&&actor.life>0&&target.life>0&&distance(actor,target)<=1){let bite=Math.max(1,Math.round(actor.atk*.3)),blocked=Math.min(target.shield,bite);target.shield-=blocked;bite=Math.min(target.life,bite-blocked);target.life-=bite;amount+=bite;log(actor.name+'的尾巴补了一嘴，造成 '+bite+' 伤害');if(target.skill===5&&target.life>0){let counter=Math.round(target.atk*.45);const absorb=Math.min(actor.shield,counter);actor.shield-=absorb;counter=Math.min(actor.life,counter-absorb);actor.life-=counter;effects.push({uid,kind:'counter',amount:counter});log(target.name+'反击尾巴 '+counter);}}
       actor.starUsed=true;actor.firstStrikeUsed=true;if(actor.skill===3&&target.life>0)target.poison=2;
       if(actor.life>0&&actor.rareGene===3){const other=alive(1-actor.side).find(u=>u.uid!==target.uid);if(other){const absorb=Math.min(other.shield,6);other.shield-=absorb;const damage=Math.min(other.life,6-absorb);other.life-=damage;effects.push({uid:other.uid,kind:'splash',amount:damage});log(actor.name+'的余雷造成 '+damage+' 伤害');}}
       if(actor.life>0&&actor.rareGene===5&&amount>0){const heal=Math.min(actor.maxHp-actor.life,Math.round(amount*.25*Growth.support(actor)));actor.life+=heal;if(heal)effects.push({uid:actor.uid,kind:'heal',amount:heal});}
@@ -191,7 +189,7 @@
     if(!Array.isArray(s.rareSeen))s.rareSeen=[...new Set(s.cats.filter(rare).map(c=>c.rareGene))];
     for(const c of s.cats)if(c.rareGene===undefined)c.rareGene=null;
     if(!Number.isInteger(s.trailBest))s.trailBest=0;
-    if(!TACTICS.some(t=>t.id===s.tactic))s.tactic='balanced';
+    delete s.tactic;
     if(s.targetLook===undefined)s.targetLook=null;
     if(s.geneGuestClaimed===undefined)s.geneGuestClaimed=false;
     for(const c of s.cats)if(!Number.isInteger(c.xp))c.xp=0;
@@ -213,11 +211,6 @@
   function claimWish(s,id){const w=activeWish(s);if(!w||w.id!==id||!wishProgress(s,w).done)return null;s.wishClaims.push(id);s.coins+=w.coins;s.blessings+=w.leaves;return w;}
   function canSkip(){return true;}
   function fastForward(s,b,rng=Math.random){let guard=0;while(!b.result&&guard++<1000)step(b,rng);if(!b.result)throw Error('战斗还未完成，请继续观战。');return b.result;}
-  const TACTICS=[
-    {id:'balanced',name:'均衡照应',desc:'优先接近最近的敌人；治疗与护盾效果增加 15%。'},
-    {id:'focus',name:'集中火力',desc:'优先攻击剩余生命最少的敌人，出爪伤害增加 8%；注意绕路与被挑衅。'},
-    {id:'guard',name:'守护阵型',desc:'敌人有 35% 概率优先攻击前排；前排额外获 15 护盾（合计 35）、受直伤减 10%，全队出爪伤害减 5%。'}
-  ];
   const ENCOUNTERS=[
     {name:'初入竹林',skills:[4,4,4],tip:'先组成三猫小队。护盾能替伙伴挡下第一轮攻击。'},
     {name:'山客的考验',skills:[1,2,0],tip:'敌人会治疗。集中火力能尽早减少敌方人数；通关迎来青灰素色山客。'},
@@ -271,6 +264,6 @@
   function learnSkill(s,id,skill){migrate(s);const c=s.cats.find(c=>c.id===Number(id));if(!c||!Number.isInteger(skill)||skill<0||skill>=SKILLS.length)throw Error('请选择猫咪与本领。');if(c.skill===skill)return {cost:0,changed:false};const known=c.learnedSkills.includes(skill),cost=known||!c.lessonUsed?0:2;if(s.geneNotes<cost)throw Error('再攒 2 点灵感，就能研习新本领。');s.geneNotes-=cost;if(!known){c.learnedSkills.push(skill);c.lessonUsed=true;}c.skill=skill;return {cost,changed:true};}
   function freeCell(b,p){return p.x>=0&&p.x<5&&p.y>=0&&p.y<5&&!(b.blocks||[]).some(q=>q.x===p.x&&q.y===p.y)&&!b.units.some(q=>q.life>0&&q.x===p.x&&q.y===p.y);}
 
-  const api={Objectives,Growth,GENE_CAP,addXP,patrolInfo,claimPatrol,study,train,mentor,FORMATION,deployment,syncDeployment,placeCat,replaceTeamCat,moveRange,combatProfile,attackCells,moveCells,canAttack,learnSkill,RARES,rare,rarityInfo,craftDew,attackRange,approach,TACTICS,ENCOUNTERS,levelInfo,trained,lookName,breedPlan,possibilities,recommendPair,canWelcome,welcomeGuest,encounter,battleStars,COLORS,PATTERNS,EARS,SKILLS,MUTATIONS,STAGES,key,initial,validate,preview,breed,createBattle,step,settle,WISHES,migrate,wishProgress,activeWish,claimWish,canSkip,fastForward};
+  const api={Objectives,Growth,GENE_CAP,addXP,patrolInfo,claimPatrol,study,train,mentor,FORMATION,deployment,syncDeployment,placeCat,replaceTeamCat,moveRange,combatProfile,attackCells,moveCells,canAttack,learnSkill,RARES,rare,rarityInfo,craftDew,attackRange,approach,ENCOUNTERS,levelInfo,trained,lookName,breedPlan,possibilities,recommendPair,canWelcome,welcomeGuest,encounter,battleStars,COLORS,PATTERNS,EARS,SKILLS,MUTATIONS,STAGES,key,initial,validate,preview,breed,createBattle,step,settle,WISHES,migrate,wishProgress,activeWish,claimWish,canSkip,fastForward};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;root.GameCore=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
