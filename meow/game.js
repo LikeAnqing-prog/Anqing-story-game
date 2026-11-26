@@ -224,7 +224,7 @@ function challenges(){return shell('小队挑战','同一群猫，也能配出�
 function goalRoute(route){if(route==='challenges'&&!state.cleared.includes(3)){battleMode='story';stage=Math.min(3,state.cleared.length+1);go('team');toast('先通关第 3 关，就能开启第一阶小队挑战。');return;}const sorted=[...state.cats].sort((a,b)=>G.levelInfo(b).level-G.levelInfo(a).level),best=sorted[0];rosterFilter='all';if(['growth','path','breakthrough','master','mentor'].includes(route)){growthPicker(route);return;}
  if(route==='lesson'){trainingId=(state.cats.find(c=>state.team.includes(c.id)&&!c.lessonUsed)||best).id;go('training');return;}
  if(route==='generation'){const a=[...state.cats].sort((a,b)=>b.gen-a.gen||b.id-a.id)[0];parents=[a.id,state.cats.find(c=>c.id!==a.id).id];if(!rememberParents())return;go('breed');return;}
- if(['preview','directed','mutation','rare'].includes(route)){if(route==='directed'){breedFocus='skill';toast('已选只锁定本领，确认繁育时才扣费。');}if(route==='mutation'){mutationPlan=null;useBlessing=state.blessings>0;if(!useBlessing&&state.geneNotes>=6)mutationPlan=0;}if(route==='rare')rareMode='explore';go('preview');return;}
+ if(['preview','directed','mutation','rare'].includes(route)){if(route==='directed'){breedFocus='skill';toast('已选只锁定本领，确认繁育时才扣费。');}if(route==='mutation'){mutationPlan=null;useBlessing=state.blessings>0;if(!useBlessing&&state.geneNotes>=6)mutationPlan=0;}if(route==='rare')rareMode='explore';go(route==='preview'?'preview':'breed');if(route==='directed'&&page==='breed')nurserySettings();return;}
  if(route==='stage1'||route==='stage2'||route==='latest'||route==='stars'||route==='trail'){battleMode=route==='trail'&&state.cleared.includes(10)?'trail':'story';stage=route==='stage1'?1:route==='stage2'?Math.min(2,state.cleared.length+1):route==='stars'?Array.from({length:10},(_,i)=>i+1).find(n=>(state.stageStars[n]||0)<3)||10:Math.min(10,state.cleared.length+1);go('team');return;}
  if(route==='book')filter='all';go(route==='challenges'?'challenges':['breed','book','team'].includes(route)?route:'wishes');}
 
@@ -268,25 +268,14 @@ function birthOption(label, action, id, active, disabled=false) {
   return btn(label,action,{id,tone:active?1:2,cls:'compact',pressed:active,disabled});
 }
 
-function rareControls(r) {
-  const source=['基础 2%',r.bloodBonus?'亲本 +'+r.bloodBonus+'%':'',r.dewBonus?'星露 +'+r.dewBonus+'%':''].filter(Boolean).join(' · ');
-  const dewHint=r.pity?'本次保底，无需星露。':rareDew?
-    '本次会消耗 '+rareDew+' 滴，未抽中也扣除。':'每滴星露让超稀有概率提高 4 个百分点。';
-  return `<section class="birth-controls rare-plan" aria-label="超稀有品种设置">
-    <div class="birth-control-heading"><h3>${resourceIcon(3)} 投入星露</h3><small>持有 ${state.starDew} 滴</small></div>
-    <div class="birth-choices four" role="group" aria-label="投入几滴星露">
-      ${[0,1,2,3].map(n=>birthOption(n?n+' 滴':'不投入','rare-dew',n,rareDew===n,n>state.starDew||r.pity&&n>0)).join('')}
-    </div><p class="birth-hint">${dewHint}</p>
-    ${r.pity?'':`<p class="birth-hint odds-source">${source}</p>`}
-    <div class="rare-preference">
-      <p><b>抽中以后</b> · ${rareMode==='explore'?'优先未收录品种':'有稀有亲本时，60% 沿袭亲本，其余随机'}</p>
-      <div class="birth-choices two" role="group" aria-label="抽中后的品种偏好">
-        ${birthOption('探索新品种','rare-mode','explore',rareMode==='explore')}
-        ${birthOption('传承亲本','rare-mode','inherit',rareMode==='inherit')}
-      </div><p class="birth-hint">这里只选品种方向，抽中概率一样。</p>
-    </div>
-    <div class="birth-minor-actions">
-      ${btn('3 灵感换 1 星露','craft-dew',{tone:2,cls:'compact',disabled:state.geneNotes<3})}
+function rarePreference() {
+  return `<section class="birth-controls">
+    <div class="birth-control-heading"><h3>抽中超稀有后</h3></div>
+    <div class="birth-choices two" role="group" aria-label="抽中后的品种偏好">
+      ${birthOption('探索新品种','rare-mode','explore',rareMode==='explore')}
+      ${birthOption('传承亲本','rare-mode','inherit',rareMode==='inherit')}
+    </div><p class="birth-hint">${rareMode==='explore'?'优先未收录品种，集齐后随机。':'有稀有亲本时，60% 沿袭亲本，其余随机。'}</p>
+    <div class="birth-minor-actions">${btn('3 灵感换 1 星露','craft-dew',{tone:2,cls:'compact',disabled:state.geneNotes<3})}
       ${btn('看稀有图鉴','rare-book',{tone:2,cls:'compact'})}</div>
   </section>`;
 }
@@ -444,7 +433,7 @@ function battleUnitDetail(uid){if(battlePending){battle=battlePending;battlePend
 
 
 function planControls(a,b) {
-  const p=G.possibilities(state,a,b,breedFocus), directed=!!breedFocus;
+  const directed=!!breedFocus;
   const labels={color:'毛色',pattern:'花纹',ears:'耳型',skill:'本领'};
   return `<section class="birth-controls genetics-controls">
     <div class="birth-control-heading"><h3>遗传设置</h3></div>
@@ -458,8 +447,12 @@ function planControls(a,b) {
       <div class="birth-choices four" role="group" aria-label="指定遗传特征">${Object.entries(labels).map(([id,name])=>
         birthOption(name,'breed-focus',id,breedFocus===id)).join('')}</div>
       ${a[breedFocus]===b[breedFocus]?'<p class="birth-hint red">双亲这项相同，用自然遗传可省 20 铜钱。</p>':''}`:''}
-    ${inheritanceSummary(a,b)}
- ${referenceEntry('后代模样',`<p class="small">基础外观的新图鉴概率；未发现的猫只显示剪影。</p><div class="outcome-list">${p.outcomes.map(c=>`<div class="outcome">${discoverySprite(c,state.seen.includes(G.key(c)))}<span>${G.COLORS[c.color]}·${G.PATTERNS[c.pattern]}<br>${G.EARS[c.ears]} · ${pct(c.chance)}${c.newLook?' · 新':''}</span></div>`).join('')}</div><p class="small">${['color','pattern','ears'].every(k=>a[k]===b[k])?'双亲基础外观相同，普通后代会相似，仍有突变机会。':'基础外观按各项独立遗传，超稀有外观另行判定。'}</p>`,9,'新图鉴 '+pct(p.novelChance))}</section>`;
+  </section>`;
+}
+
+function offspringPreview(a,b) {
+  const p=G.possibilities(state,a,b,breedFocus);
+  return `${referenceEntry('后代模样',`<p class="small">基础外观的新图鉴概率；未发现的猫只显示剪影。</p><div class="outcome-list">${p.outcomes.map(c=>`<div class="outcome">${discoverySprite(c,state.seen.includes(G.key(c)))}<span>${G.COLORS[c.color]}·${G.PATTERNS[c.pattern]}<br>${G.EARS[c.ears]} · ${pct(c.chance)}${c.newLook?' · 新':''}</span></div>`).join('')}</div><p class="small">${['color','pattern','ears'].every(k=>a[k]===b[k])?'双亲基础外观相同，普通后代会相似，仍有突变机会。':'基础外观按各项独立遗传，超稀有外观另行判定。'}</p>`,9,'新图鉴 '+pct(p.novelChance))}`;
 }
 
 function mutationPortrait(i){const owned=state.cats.find(c=>c.mutation===i&&!G.rare(c)),sample=owned||{color:0,pattern:0,ears:0,mutation:i};return discoverySprite(sample,state.mutationSeen.includes(i));}
@@ -486,21 +479,82 @@ function birthOdds(ordinary,rare) {
   </section>`;
 }
 
-function mutationControls() {
-  const m=G.MUTATIONS[mutationPlan], blessed=useBlessing&&state.blessings>0;
-  return `<section class="birth-controls mutation-plan" aria-label="普通突变设置">
-    <div class="birth-control-heading"><h3>${icon(3)} 普通突变</h3><small>已发现 ${state.mutationSeen.length}/${G.MUTATIONS.length}</small></div>
-    <div class="birth-choices three" role="group" aria-label="选择普通突变方式">
-      ${birthOption('自然随机','mutation-plan','',!m&&!blessed)}
-      ${birthOption('心愿叶','blessing',undefined,blessed,state.blessings===0)}
-      ${birthOption('指定突变','mutation-picker',undefined,!!m)}
-    </div>
-    <p class="birth-hint">${m?'<b>'+m.name+' · '+m.desc+'</b>，消耗 6 灵感。':
-      blessed?'消耗 1 心愿叶，必出随机普通突变。':
-      '心愿叶保一次随机突变，6 灵感可指定种类。'}</p>
-    <p class="birth-hint">持有 ${state.blessings} 心愿叶 · ${state.geneNotes} 灵感</p>
+function nurserySettings() {
+  const [a,b]=parents.map(cat);
+  if(!a||!b)return;
+  const m=G.MUTATIONS[mutationPlan];
+  modal('繁育设置',planControls(a,b)+`<section class="birth-controls">
+    <div class="birth-control-heading"><h3>指定普通突变</h3></div>
+    <p class="birth-hint">${m?'本次指定 '+m.name+' · 消耗 6 灵感':'花费 6 灵感，可指定一种普通突变。'}</p>
+    <div class="birth-minor-actions">${btn(m?'换一种':'挑一种','mutation-picker',{tone:2,cls:'compact'})}
+      ${m?btn('取消指定','mutation-plan',{id:'',tone:2,cls:'compact'}):''}</div>
+    </section>`+rarePreference(),btn('返回小屋','modal-back',{tone:2}),9);
+  modalRoot.querySelector('.modal').classList.add('nursery-settings-modal');
+}
+
+function refreshNurserySettings() {
+  const settings=modalRoot.querySelector('.nursery-settings-modal');
+  const scroll=settings?.querySelector('.modal-scroll').scrollTop||0;
+  render();
+  if(settings) {
+    nurserySettings();
+    modalRoot.querySelector('.modal-scroll').scrollTop=scroll;
+  }
+}
+
+const nurseryMaterials = {
+  leaf:{name:'心愿叶',effect:'投入 1 片，必出一种随机普通突变。每次最多 1 片。'},
+  dew:{name:'星露',effect:'每滴让超稀有概率增加 4 个百分点。每次最多 3 滴。'}
+};
+function materialCount(kind) { return kind==='leaf'?Number(useBlessing&&state.blessings>0):rareDew; }
+function nurserySupplies() {
+  return `<section class="nursery-supplies" aria-label="繁育道具">
+    <p class="nursery-material-hint skin" hidden role="status">${skin('button',2)}<span></span></p>
+    ${Object.entries(nurseryMaterials).map(([kind,{name}])=>`<div class="material-box ${kind}" data-material="${kind}">
+      <button class="material-tap" data-action="breed-material" data-id="${kind}" type="button" aria-description="${nurseryMaterials[kind].effect}">
+        <span class="material-art" aria-hidden="true"></span><span class="material-label">${name}</span><span class="material-count"></span>
+      </button><button class="material-minus" type="button" data-action="breed-remove-material" data-id="${kind}" aria-label="取回一个${name}" hidden>−</button>
+    </div>`).join('')}
+    <button class="nursery-settings-link skin" data-action="nursery-settings">${skin('button',2)}<span>繁育设置</span></button>
   </section>`;
 }
+function refreshNurseryMaterials() {
+  for(const box of screen.querySelectorAll('.material-box')){
+    const kind=box.dataset.material, balance=kind==='leaf'?state.blessings:state.starDew, count=materialCount(kind);
+    const button=box.querySelector('.material-tap');
+    box.classList.toggle('has-material',count>0);
+    box.querySelector('.material-count').textContent='已投 '+count+' / 持有 '+balance;
+    box.querySelector('.material-minus').hidden=count===0;
+    button.setAttribute('aria-label',nurseryMaterials[kind].name+'，已投 '+count+'，持有 '+balance);
+  }
+}
+function changeNurseryMaterial(kind,step) {
+  if(page!=='breed'||!nurseryMaterials[kind])return false;
+  const before=materialCount(kind);
+  if(kind==='leaf'){
+    useBlessing=step>0&&state.blessings>0;
+    if(useBlessing)mutationPlan=null;
+  }else{
+    const limit=G.rarityInfo(state,...parents.map(cat)).pity?0:Math.min(3,state.starDew);
+    rareDew=Math.max(0,Math.min(limit,rareDew+step));
+  }
+  if(before===materialCount(kind))return false;
+  refreshNurseryMaterials();
+  const footer=screen.querySelector('.nursery-footer');
+  if(footer)footer.innerHTML=nurseryActions();
+  return true;
+}
+function showMaterialHint(kind) {
+  const hint=screen.querySelector('.nursery-material-hint');
+  if(!hint)return;
+  const data=nurseryMaterials[kind];
+  const extra=kind==='dew'&&G.rarityInfo(state,...parents.map(cat)).pity?' 本次保底，星露无需投入。':'';
+  hint.querySelector(':scope>span:last-child').textContent=data.name+' · '+data.effect+extra;
+  hint.hidden=false;
+  clearTimeout(materialHintTimer);
+  materialHintTimer=setTimeout(()=>{hint.hidden=true;},4300);
+}
+let materialHintTimer;
 function comboDetail(id){const [color,pattern,ears]=id.split('-').map(Number),c={color,pattern,ears,mutation:null},seen=state.seen.includes(id);modal(seen?G.lookName(id):'尚未发现的模样',`${discoverySprite(c,seen)}<p class="center">${seen?'已经点亮这页图鉴':'遇见后，才会揭晓它真正的模样。'}</p><p class="note">通过繁育或迎接新伙伴，发现更多毛色、花纹与耳型组合。</p>`,btn('去繁育','breed',{icon:9})+btn('关闭','modal-close',{tone:2}),11);}
 function squadCoach(){const members=state.team.map(cat),rule=G.encounter(state,stage,battleMode),poison=rule.skills.includes(3),control=rule.skills.some(i=>[7,11].includes(i)),counter=rule.skills.includes(5),hasCleanse=members.some(c=>c.skill===8||c.skill===2&&c.growthPath==='healer'),hasControl=members.some(c=>[7,11].includes(c.skill)),hasHunter=members.some(c=>c.growthPath==='hunter'),need=poison?'敌方会持续施毒':control?'敌方会限制行动或移动':counter?'敌方受击会反击':rule.skills.includes(2)?'敌方有治疗，要尽早减员':'先让输出有时间发挥';const idea=poison?(hasCleanse?'队伍已有解毒手段，留意治疗猫能否及时行动。':'带上会春风或清露解毒的伙伴。'):control?'春风可以解控；远程猫被定身后仍能攻击范围内目标。':counter?'多次直伤也会多次触发反击；毒爪消耗、添盾与治疗能减少损失。':rule.skills.includes(2)?'让输出猫靠同一侧站位，或用冰铃打断治疗。':'保护、输出与续航各有用途；也可以用控制争取速攻。';modal('这次怎么选猫？',`<p class="small">本关重点</p><h3>${need}</h3><p class="note">${idea}</p>${hasControl&&hasHunter?'<p class="green small">已形成配合：控制敌人 → 追风伙伴抓住破绽。</p>':''}<div class="coach-team">${members.map(c=>`<div>${sprite(c)}<strong>${esc(c.name)}</strong>${buildBrief(c)}<p class="small">${catJob(c)[3]}</p></div>`).join('')}</div><p class="small">相同外观不代表相同打法；先看本领、专长与突变，再比较等级。</p>`,btn('回棋盘换队友','modal-close',{tone:2}),10);}
 function scouting(){if(battleMode==='challenge'){const d=G.Objectives.challenges.find(x=>x.id===challengeId),missing=G.Objectives.challengeSetup(state,challengeId);return panel('<h3>'+d.name+' · '+d.tier+'阶挑战</h3><p class="note">'+d.desc+'</p>'+(missing.length?'<p class="note red">还需调整：'+missing.join('；')+'</p>':'<p class="note green">阵容条件已满足，出发试试！</p>')+'<p class="small">'+(state.objectives.challengeWins.includes(d.id)?'印记已获得，本次是自由练习。':'首次达成奖励 '+goalRewards(d)+' '+resource(2,d.xp))+'</p>','scout-panel');}const rule=G.encounter(state,stage,battleMode),record=state.stageStars[stage]||0;return panel(`<div class="flex between"><h3>${battleMode==='trail'?'远行第 '+rule.floor+' 段':G.STAGES[stage-1]}</h3><b class="red">${battleMode==='trail'?'纪录 '+state.trailBest+' 段':stars(record)}</b></div><h3 class="choice-header">敌情 · ${rule.name}</h3><p class="small">${rule.skills.map(i=>G.SKILLS[i].name).join(' / ')}${rule.shield?' · 入场护盾 '+rule.shield:''}</p><p class="note">${rule.tip}</p><p class="small">${battleMode==='trail'?'胜利获得 '+resource(1,2)+' '+resource(3,1)+' 与铜钱，下一段敌情轮换。':'三星条件：胜利 / 全员存活 / 8 回合内获胜。每颗新星 '+resource(0,'+40')+'，刷新星级再得 '+resource(1,1)+' '+resource(3,1)}</p>`,'scout-panel');}
@@ -512,7 +566,27 @@ screen.addEventListener('click',e=>{const p=backdropStart;backdropStart=null;if(
 function home(){return villageHome();}
 function pairSlots(){return `<div class="row-pair">${[0,1].map((n)=>`${n===1?`<div class="pair-mid">${icon(1)}</div>`:''}${parents[n]?card(cat(parents[n]),'select',true,n===0?'甲':'乙'):`<div class="skin cat-card">${skin('panel',1)}<div class="empty-cat">？</div><strong>选择双亲${n?'乙':'甲'}</strong></div>`}`).join('')}</div>`;}
 function inherited(a,b,field,names){if(breedFocus===field)return `${names[a[field]]} <span class="sub">指定继承${esc(a.name)}</span>`;return a[field]===b[field]?`${names[a[field]]} <span class="sub">必定继承</span>`:`${names[a[field]]} / ${names[b[field]]} <span class="sub">各 50%</span>`;}
-function breeding(){const complete=parents.every(Boolean);return header('育猫小屋','灯暖花开，等一次相逢')+nurseryAmbience()+nurseryParents()+(parentSlot!==null?`<section class="skin nursery-sheet nursery-picker" aria-label="替换双亲${parentSlot?'乙':'甲'}">${skin()}<main class="nursery-list"><div class="flex between"><h3>替换${esc(cat(parents[parentSlot]).name)}</h3>${btn('收起','nursery-close',{tone:2,cls:'compact'})}</div><p class="small">筛选后点一只猫替换，选好会自动收起。</p>${collection('select')}</main></section>`:'')+nurseryFooter(btn('看看机会','preview',{icon:9,disabled:!complete}))+nav('breed');}
+function nurseryCost() {
+  const plan=G.breedPlan(state,{focus:breedFocus,mutation:mutationPlan,dew:rareDew,rareMode});
+  const cost=[[0,plan.cost],[1,plan.notesCost],[3,rareDew],[4,materialCount('leaf')]].filter(([,n])=>n>0);
+  const balance=[state.coins,state.geneNotes,0,state.starDew,state.blessings];
+  return {cost,missing:cost.find(([i,n])=>n>balance[i])};
+}
+function nurseryActions() {
+  const complete=parents.every(Boolean), {cost,missing}=nurseryCost();
+  return `<p class="preview-cost${missing?' red':''}">${missing?resourceNames[missing[0]]+'不足':'本次花费'}
+    ${cost.map(([i,n])=>`<span>${resourceIcon(i)}${n} ${resourceNames[i]}</span>`).join('')}</p>
+    <div class="nursery-cta">${btn('预览','preview',{tone:2,icon:11,disabled:!complete})}
+    ${btn('开始繁育','breed-start',{tone:1,icon:9,disabled:!complete||!!missing})}</div>`;
+}
+function breeding() {
+  const picker=parentSlot!==null?`<section class="skin nursery-sheet nursery-picker" aria-label="替换双亲${parentSlot?'乙':'甲'}">
+    ${skin()}<main class="nursery-list"><div class="flex between"><h3>替换${esc(cat(parents[parentSlot]).name)}</h3>
+    ${btn('收起','nursery-close',{tone:2,cls:'compact'})}</div><p class="small">筛选后点一只猫替换，选好会自动收起。</p>
+    ${collection('select')}</main></section>`:'';
+  return header('育猫小屋','灯暖花开，等一次相逢')+nurseryAmbience()+nurseryParents()+
+    (picker||nurserySupplies())+nurseryFooter(nurseryActions())+nav('breed');
+}
 function inheritanceSummary(a,b) {
   const p=G.preview(a,b);
   const fields=[['毛色','color',G.COLORS],['花纹','pattern',G.PATTERNS],
@@ -525,25 +599,18 @@ function inheritanceSummary(a,b) {
 function preview() {
   const [a,b]=parents.map(cat);
   if(!a||!b){page='breed';return breeding();}
-  if(G.rarityInfo(state,a,b).pity)rareDew=0;
   const rare=G.rarityInfo(state,a,b,rareDew);
-  const plan=G.breedPlan(state,{focus:breedFocus,mutation:mutationPlan,dew:rareDew,rareMode});
-  const leaf=!!(useBlessing&&state.blessings>0&&mutationPlan===null);
-  const cost=[[0,plan.cost],[1,plan.notesCost],[3,rareDew],[4,Number(leaf)]].filter(([,count])=>count>0);
-  const missing=cost.find(([i,count])=>count>[state.coins,state.geneNotes,0,state.starDew,state.blessings][i]);
   const pair=[a,b].map(c=>`<span class="preview-cat">${sprite(c)}<b>${esc(c.name)}</b></span>`).join('<span class="pair-cross" aria-hidden="true">×</span>');
+  const modifiers=[rare.bloodBonus?'稀有亲本 +'+rare.bloodBonus+'%':'',rare.dewBonus?'星露 +'+rare.dewBonus+'%':''].filter(Boolean);
+  const details=rare.pity?'超稀有本次保底。':['超稀有基础 2%',...modifiers].join(' · ');
   const content=`<main class="scroll-content">
     <div class="preview-pair" aria-label="双亲">${pair}</div>
     ${birthOdds(ordinaryOutcome(),rare)}
-    ${mutationControls()}
-    ${rareControls(rare)}
-    ${planControls(a,b)}
-    ${missing?.[0]===0?btn('去试炼攒铜钱','team',{tone:2,cls:'compact'}):''}
+    <p class="birth-hint center">${details}</p>
+    ${inheritanceSummary(a,b)}
+    ${offspringPreview(a,b)}
   </main>`;
-  const total=`<p class="preview-cost${missing?' red':''}">${missing?resourceNames[missing[0]]+'不足':'本次花费'}
-    ${cost.map(([i,count])=>`<span>${resourceIcon(i)}${count} ${resourceNames[i]}</span>`).join('')}</p>`;
-  return header('繁育预览','')+`<div class="skin scroll-shell preview-sheet">${skin()}${content}</div>`+
-    nurseryFooter(total+btn('开始繁育','breed-start',{icon:9,tone:1,disabled:!!missing}))+nav('breed');
+  return header('繁育预览','')+`<div class="skin scroll-shell preview-sheet">${skin()}${content}</div>`+nav('breed');
 }
 
 function birthing(){return header('育猫小屋','新的相逢正在发生')+nurseryAmbience()+`<div class="nursery-birth-scene">${welcomeArt(0,'basket-wreath')}<button data-action="open-basket" class="nursery-basket" aria-label="打开猫篮">${icon(9)}</button>${welcomeArt(3,'basket-spark')}</div>`+panel('<h2>听，小窝里有动静了……</h2><p>双亲已经回到院子。轻点猫篮，迎接小家伙。</p>','nursery-birth-caption')+nav('breed');}
@@ -554,7 +621,7 @@ function bookTop(){return `${panel(`<div class="flex between"><h2>${state.seen.l
 function family(){const c=cat(familyId)||state.cats.at(-1),ps=c.parents.map(cat),children=state.cats.filter(x=>x.parents.includes(c.id));return shell('家族古树','记得来处，也期待下一代',`<h2>${esc(c.name)}的家族</h2><div class="family-picker">${state.cats.map(x=>btn(esc(x.name),'family-select',{id:x.id,tone:x.id===c.id?1:2,cls:'compact'})).join('')}</div>${ps.length?`<p class="family-caption">双亲 · 第 ${ps[0].gen} / ${ps[1].gen} 代</p><div class="row-pair">${ps.map(x=>card(x,'family-select')).join('')}</div><div class="family-arrow">${icon(13)}</div>`:`<p class="family-caption">这是一只初代猫，家族故事从这里开始。</p>`}<div class="family-child">${card(c)}</div>${panel(`<p class="center">${G.COLORS[c.color]} · ${G.PATTERNS[c.pattern]} · ${G.EARS[c.ears]}<br>第 ${c.gen} 代 · ${G.SKILLS[c.skill].name}${c.mutation!==null?' · '+G.MUTATIONS[c.mutation].name:''}</p>`,'panel-tight')}<h3 class="choice-header">它的后代 ${children.length?`· ${children.length} 只`:''}</h3>${children.length?`<div class="family-arrow">${icon(13)}</div><div class="family-children">${children.map(x=>card(x,'family-select')).join('')}</div>`:`<p class="sub center">还没有后代，去试一次新的组合吧。</p>`}${btn('带它去繁育','family-breed',{id:c.id,icon:9})}`,'family');}
 function roster(){return shell('猫咪小屋','都在这里，慢慢长大',`<h2>院里的 ${state.cats.length} 只小伙伴</h2><p class="sub">点猫咪查看属性、本领和家族。</p>${collection('detail')}${btn('去育猫小窝','breed',{icon:9})}`,'home');}
 let lastRenderedPage=null;
-function render(){const same=lastRenderedPage===page,scrollTop=same?($('.scroll-content')||$('.nursery-list'))?.scrollTop||0:0,opened=same?[...document.querySelectorAll('details[open][data-fold]')].map(el=>el.dataset.fold):[];game.className=(page==='home'?'':page==='battle'?'battle':'inner')+(page==='team'?' team-page':page==='growth'?' growth-page':page==='academy'?' academy-page':page==='book'?' book-page':page==='challenges'?' challenges-page':'')+(['breed','preview','birthing','reveal'].includes(page)?' nursery-room nursery-'+page:'');const views={home,breed:breeding,preview,birthing,reveal,team,battle:battlefield,book,family,roster,wishes,training,growth,academy,'long-goals':longGoals,challenges};screen.innerHTML=views[page]()+ (page==='team'?teamActions():'');for(const key of opened){const el=document.querySelector('details[data-fold="'+key+'"]');if(el)el.open=true;}const scrollEl=$('.scroll-content')||$('.nursery-list');if(scrollEl)scrollEl.scrollTop=scrollTop;lastRenderedPage=page;renderedView=viewState();syncGrowthReminder();cancelAnimationFrame(villageFrame);if(page==='home'){initVillage();animateVillage();}}
+function render(){const same=lastRenderedPage===page,scrollTop=same?($('.scroll-content')||$('.nursery-list'))?.scrollTop||0:0,opened=same?[...document.querySelectorAll('details[open][data-fold]')].map(el=>el.dataset.fold):[];game.className=(page==='home'?'':page==='battle'?'battle':'inner')+(page==='team'?' team-page':page==='growth'?' growth-page':page==='academy'?' academy-page':page==='book'?' book-page':page==='challenges'?' challenges-page':'')+(['breed','preview','birthing','reveal'].includes(page)?' nursery-room nursery-'+page:'');const views={home,breed:breeding,preview,birthing,reveal,team,battle:battlefield,book,family,roster,wishes,training,growth,academy,'long-goals':longGoals,challenges};screen.innerHTML=views[page]()+ (page==='team'?teamActions():'');for(const key of opened){const el=document.querySelector('details[data-fold="'+key+'"]');if(el)el.open=true;}const scrollEl=$('.scroll-content')||$('.nursery-list');if(scrollEl)scrollEl.scrollTop=scrollTop;if(page==='breed')refreshNurseryMaterials();lastRenderedPage=page;renderedView=viewState();syncGrowthReminder();cancelAnimationFrame(villageFrame);if(page==='home'){initVillage();animateVillage();}}
 function viewState(){return {page,filter,familyId,trainingId,growthId,browsingCats,growthGoalRoute,growthChoice,growthTab,academyFilter,lessonChoice,stage,battleMode,challengeId,rosterFilter,rosterSort,deployCatId,deployInspect,parentSlot};}
 function captureModal(){if(!modalView||!modalRoot.children.length)return null;return {...modalView,html:modalRoot.innerHTML,scroll:modalRoot.querySelector('.modal-scroll')?.scrollTop||0};}
 function navigationSnapshot(){const current=captureModal();return {...(renderedView||viewState()),scroll:($('.scroll-content')||$('.nursery-list'))?.scrollTop||0,opened:[...screen.querySelectorAll('details[open][data-fold]')].map(e=>e.dataset.fold),overlay:current&&!current.transient?{current,history:[...modalHistory]}:null};}
@@ -588,6 +655,7 @@ growthPicker=bindModal(growthPicker,'growthPicker');
 growthNode=bindModal(growthNode,'growthNode');
 deploymentPicker=bindModal(deploymentPicker,'deploymentPicker');
 mutationPicker=bindModal(mutationPicker,'mutationPicker');
+nurserySettings=bindModal(nurserySettings,'nurserySettings');
 mutationDetail=bindModal(mutationDetail,'mutationDetail');
 comboDetail=bindModal(comboDetail,'comboDetail');
 help=bindModal(help,'help');
@@ -643,7 +711,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  case 'mentor':G.mentor(state,growthId,id);if(!save())return;render();showNextCelebration();break;
  case 'compare-cat':compareCat(id);break;
  case 'compare-replace':{const [next,old]=id.split(':').map(Number),i=state.team.indexOf(old);if(i<0||state.team.includes(next))break;G.replaceTeamCat(state,old,next);if(state.pendingReveal===next)finishReveal('team');else{if(!save())return;go('team');}break;}
- case 'rare-mode':rareMode=id==='inherit'?'inherit':'explore';render();break;
+ case 'rare-mode':rareMode=id==='inherit'?'inherit':'explore';refreshNurserySettings();break;
  case 'patrol':patrol();break;
  case 'patrol-claim':{const p=G.claimPatrol(state);if(!save())return;closeModal();render();toast('巡游收获已保存：铜钱 '+p.coins+'，心得 '+p.xp);break;}
  case 'unit-detail':battleUnitDetail(id);break;
@@ -655,6 +723,9 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  case 'welcome-back':showWelcome();break;
  case 'welcome-replace':{const n=state.team.indexOf(Number(id));if(welcomeShowing&&n>=0){state.team[n]=welcomeShowing;completeWelcome();}break;}
  case 'nursery-slot':parentSlot=Number(id);rosterFilter='all';render();if($('.nursery-list'))$('.nursery-list').scrollTop=0;break;
+ case 'nursery-settings':nurserySettings();break;
+ case 'breed-material':if(!changeNurseryMaterial(id,1))showMaterialHint(id);break;
+ case 'breed-remove-material':changeNurseryMaterial(id,-1);break;
  case 'nursery-close':parentSlot=null;render();break;
  case 'back':goBack();break;
  case 'growth-next':completeGrowth();break;
@@ -677,27 +748,26 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
    break;
  }
  case 'resource-info':resourceInfo();break;
- case 'rare-dew':if(G.rarityInfo(state,...parents.map(cat)).pity){rareDew=0;break;}rareDew=Math.max(0,Math.min(3,Number(id),state.starDew));render();break;
- case 'craft-dew':G.craftDew(state);if(!save())return;render();toast('凝成一滴星露。');break;
+ case 'craft-dew':G.craftDew(state);if(!save())return;refreshNurserySettings();toast('凝成一滴星露。');break;
  case 'rare-book':filter='rare';go('book');break;
  case 'rare-detail':{const i=Number(id),r=G.RARES[i],owned=state.cats.find(c=>c.rareGene===i);modal(r.name,discoverySprite({rareGene:i},state.rareSeen.includes(i))+'<p class="note">'+r.desc+'</p><p class="small">'+(owned?'已在家族里留下足迹：'+esc(owned.name):'繁育时有机会出现；星露可提高概率。')+'</p>',owned?btn('看看它','detail',{id:owned.id}):btn('去繁育','breed'));break;}
  case 'wish-toggle':wishOpen=!wishOpen;render();break;
  case 'track-look':state.targetLook=id;if(!save())return;go('breed');break;
  case 'recommend':{const r=G.recommendPair(state);if(!r||r.chance===0){toast(state.targetLook?'目前双亲还缺少目标基因；通关第 2 关迎接山客。':'所有可组合模样都已发现，去试炼迎接新本领。');break;}parents=r.ids;if(!rememberParents())return;breedFocus=null;mutationPlan=null;go('preview');break;}
  case 'gene-guest':{const c=G.welcomeGuest(state);if(c){if(!save())return;render();showNextCelebration();}break;}
- case 'breed-mode':breedFocus=id==='directed'?(breedFocus||['color','pattern','ears','skill'].find(k=>cat(parents[0])[k]!==cat(parents[1])[k])||'color'):null;render();break;
- case 'breed-source':if(breedFocus&&parents.includes(Number(id))&&parents[0]!==Number(id)){parents.reverse();if(!rememberParents())return;render();}break;
- case 'breed-focus':if(!id||['color','pattern','ears','skill'].includes(id)){breedFocus=id||null;render();}break;
+ case 'breed-mode':breedFocus=id==='directed'?(breedFocus||['color','pattern','ears','skill'].find(k=>cat(parents[0])[k]!==cat(parents[1])[k])||'color'):null;refreshNurserySettings();break;
+ case 'breed-source':if(breedFocus&&parents.includes(Number(id))&&parents[0]!==Number(id)){parents.reverse();if(!rememberParents())return;refreshNurserySettings();}break;
+ case 'breed-focus':if(!id||['color','pattern','ears','skill'].includes(id)){breedFocus=id||null;refreshNurserySettings();}break;
  case 'mutation-picker':mutationPicker();break;
  case 'mutation-preview':mutationDetail(Number(id),true);break;
  case 'mutation-detail':mutationDetail(Number(id));break;
  case 'mutation-plan':{const next=id===''?null:Number(id);if(next!==null&&(!G.MUTATIONS[next]||next>=3&&!state.mutationSeen.includes(next)||state.geneNotes<6)){toast('先发现这类突变，并攒够 6 点灵感。');break;}mutationPlan=next;useBlessing=false;closeModal();render();break;}
- case 'swap-parents':parents.reverse();if(!rememberParents())return;render();break;
+ case 'swap-parents':parents.reverse();if(!rememberParents())return;refreshNurserySettings();break;
  case 'battle-mode':if(id==='trail'&&!state.cleared.includes(10))break;battleMode=id;render();break;
- case 'map-in':zoomMap(1.2);break;case 'map-out':zoomMap(1/1.2);break;case 'map-fit':fitMap();break;case 'blessing':mutationPlan=null;useBlessing=!useBlessing;render();break;case 'wish-claim':{const reward=G.claimWish(state,id);if(reward){if(!save())return;render();toast('心愿完成！ '+resource(0,'+'+reward.coins)+(reward.leaves?' '+resource(4,'+'+reward.leaves):''),true);}break;}case 'battle-skip':skipBattle();break;case 'help':help();break;case 'modal-close':case 'modal-back':modalBack();break;
+ case 'map-in':zoomMap(1.2);break;case 'map-out':zoomMap(1/1.2);break;case 'map-fit':fitMap();break;case 'wish-claim':{const reward=G.claimWish(state,id);if(reward){if(!save())return;render();toast('心愿完成！ '+resource(0,'+'+reward.coins)+(reward.leaves?' '+resource(4,'+'+reward.leaves):''),true);}break;}case 'battle-skip':skipBattle();break;case 'help':help();break;case 'modal-close':case 'modal-back':modalBack();break;
  case 'select':{if(parentSlot===null)break;const n=Number(id);if(!cat(n))break;breedFocus=null;mutationPlan=null;const other=1-parentSlot;if(parents[other]===n)parents[other]=parents[parentSlot];parents[parentSlot]=n;parentSlot=null;if(!rememberParents())return;render();break;}
  case 'preview':if(parents.every(Boolean))go('preview');break;
- case 'breed-start':if(page!=='preview')break;G.breed(state,...parents,Math.random,useBlessing,{focus:breedFocus,mutation:mutationPlan,dew:rareDew,rareMode});useBlessing=false;breedFocus=null;mutationPlan=null;rareDew=0;if(!save())return;page='birthing';render();birthTimer=setTimeout(()=>{if(page==='birthing'){page='reveal';render();}},2400);break;
+ case 'breed-start':if(page!=='breed'||!parents.every(Boolean)||nurseryCost().missing)break;G.breed(state,...parents,Math.random,useBlessing,{focus:breedFocus,mutation:mutationPlan,dew:rareDew,rareMode});useBlessing=false;breedFocus=null;mutationPlan=null;rareDew=0;if(!save())return;parentSlot=null;page='birthing';render();birthTimer=setTimeout(()=>{if(page==='birthing'){page='reveal';render();}},2400);break;
  case 'open-basket':clearTimeout(birthTimer);page='reveal';render();break;
  case 'reveal-team':finishReveal('team');break;case 'reveal-home':finishReveal('home');break;
  case 'deploy-select':if(state.team.includes(Number(id))){deployCatId=Number(id);deployInspect='a'+id;render();deploymentPicker(Number(id));}break;
@@ -728,6 +798,46 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  case 'import-confirm':if(window.__pendingImport){welcomeShowing=null;parentSlot=null;clearTimeout(levelTimer);levelShowing=null;rewardPending=null;growthSession=null;clearTimeout(battleTimer);battle=null;state=G.migrate(window.__pendingImport);navHistory=[];useBlessing=false;breedFocus=null;mutationPlan=null;rareDew=0;battleCue=null;battlePending=null;battleMode='story';wishOpen=true;camera.ready=false;delete window.__pendingImport;parents=[...state.breedingParents];familyId=state.cats.at(-1).id;stage=Math.min(10,(state.cleared.at(-1)||0)+1);if(!save())return;page=state.pendingReveal?'reveal':'home';closeModal();render();toast('手记接上了。');}break;
  }
  }catch(err){toast(err.message||'小猫打了个盹，请再试一次。');}});});
+let materialPress=null, heldMaterialClick=null;
+screen.addEventListener('pointerdown',e=>{
+  const button=e.target.closest('[data-action="breed-material"]');
+  heldMaterialClick=null;
+  if(!button||e.button!==0||!e.isPrimary)return;
+  const press={button,pointer:e.pointerId,kind:button.dataset.id,timer:null,held:false,x:e.clientX,y:e.clientY};
+  materialPress=press;
+  button.setPointerCapture?.(e.pointerId);
+  const repeat=()=>{
+    if(materialPress!==press||!button.isConnected||page!=='breed'||modalRoot.children.length)return;
+    if(!press.held)showMaterialHint(press.kind);
+    press.held=true;
+    if(changeNurseryMaterial(press.kind,1)){
+      MeowSound.play('tap');
+      press.timer=setTimeout(repeat,230);
+    }
+  };
+  press.timer=setTimeout(repeat,450);
+});
+function endMaterialPress(e,dragged=false) {
+  const press=materialPress;
+  if(!press||press.pointer!==e.pointerId)return;
+  clearTimeout(press.timer);
+  materialPress=null;
+  if(press.held||dragged)heldMaterialClick=press.button;
+}
+screen.addEventListener('pointermove',e=>{
+  const p=materialPress;
+  if(p&&Math.hypot(e.clientX-p.x,e.clientY-p.y)>13)endMaterialPress(e,true);
+});
+for(const type of ['pointerup','pointercancel','lostpointercapture'])screen.addEventListener(type,e=>endMaterialPress(e));
+screen.addEventListener('contextmenu',e=>{if(e.target.closest('.material-tap'))e.preventDefault();});
+screen.addEventListener('click',e=>{
+  const button=e.target.closest('.material-tap');
+  if(button&&button===heldMaterialClick&&e.detail>0){
+    heldMaterialClick=null;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+},true);
 let deployDrag=null,deployIgnoreUntil=0;
 screen.addEventListener('click',e=>{if(e.isTrusted&&performance.now()<deployIgnoreUntil&&e.target.closest('.deployment-board')){e.preventDefault();e.stopImmediatePropagation();}},true);
 screen.addEventListener('pointerdown',e=>{const cell=e.target.closest('.deploy-cell[data-cat-id]');if(page!=='team'||!cell||e.button!==0)return;deployDrag={id:Number(cell.dataset.catId),pointer:e.pointerId,x:e.clientX,y:e.clientY,cell,moved:false,ghost:null};cell.setPointerCapture?.(e.pointerId);});
@@ -751,9 +861,9 @@ document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.tar
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(levelTimer);else if(levelShowing)showGrowth();});
 window.addEventListener('storage',e=>{if(e.key===STORE)MeowSave.exclusive(()=>syncSave());});
 window.addEventListener('focus',()=>MeowSave.exclusive(()=>syncSave()));
-const assets=['v141-skill-icons','v141-range-tiles','v12-mutants-a','v12-mutants-b','v9-walk-pointed','v9-walk-round','v9-walk-rare','v8-nursery-room','v8-square-back','v8-welcome','v7-hearts-teams','v7-skills-growth','v6-rare-cats-clean','v6-panel-thin','v6-resources','v6-battle-tiles','v4-ground','v4-foreground-tree','v3-map-village','v2-map-home','v2-map-battle','v2-cats','v2-cats-round','v2-panels','v2-buttons','v2-icons'];
+const assets=['v155-leaf-box','v155-dew-box','v141-skill-icons','v141-range-tiles','v12-mutants-a','v12-mutants-b','v9-walk-pointed','v9-walk-round','v9-walk-rare','v8-nursery-room','v8-square-back','v8-welcome','v7-hearts-teams','v7-skills-growth','v6-rare-cats-clean','v6-panel-thin','v6-resources','v6-battle-tiles','v4-ground','v4-foreground-tree','v3-map-village','v2-map-home','v2-map-battle','v2-cats','v2-cats-round','v2-panels','v2-buttons','v2-icons'];
 let imagesReady=0;const loadedImage=ok=>{imagesReady++;const label=document.querySelector('#loading p');if(label)label.textContent='小院正在醒来…… '+Math.round(imagesReady/assets.length*100)+'%';return ok;};
 Promise.all(assets.map(n=>new Promise(resolve=>{const i=new Image();i.onload=()=>i.decode().catch(()=>{}).then(()=>resolve(loadedImage(true)));i.onerror=()=>resolve(loadedImage(false));i.src=ASSET(n);}))).then(results=>{render();$('#loading').remove();if(results.some(x=>!x))modal('有几张画还没送到','网络有些慢，部分画面还未加载完成。请重新载入。',btn('重新载入','reload'));if(state.pendingWelcomes.length||state.pendingGrowth.length)showNextCelebration();if(loadNotice)toast(loadNotice);});
 document.addEventListener('click',e=>{if(e.target.closest('[data-action="reload"]'))location.reload();const el=e.target.closest('summary,button');if(el&&!el.disabled&&!el.closest('[data-action]')&&!e.defaultPrevented)MeowSound.play('tap');});
-window.MeowDemo={build:'15.4-back-one-level',getWelcomeShowing:()=>welcomeShowing,getGrowthShowing:()=>levelShowing,getBattlePhase:()=>battleCue?.phase||null,getCamera:()=>({...camera}),getVillageScene:()=>({time:villageTime,tree:{...TREE},gate:VillageMotion.gate,cats:[...document.querySelectorAll('.village-cat')].map(el=>({id:Number(el.dataset.id),x:parseFloat(el.style.left),y:parseFloat(el.style.top),depth:Number(el.style.zIndex),moving:el.dataset.moving,frame:Number(el.dataset.frame)}))}),getState:()=>JSON.parse(JSON.stringify(state)),getPage:()=>page,getBattle:()=>battle?JSON.parse(JSON.stringify(battle)):null};
+window.MeowDemo={build:'15.5-nursery-boxes',getWelcomeShowing:()=>welcomeShowing,getGrowthShowing:()=>levelShowing,getBattlePhase:()=>battleCue?.phase||null,getCamera:()=>({...camera}),getVillageScene:()=>({time:villageTime,tree:{...TREE},gate:VillageMotion.gate,cats:[...document.querySelectorAll('.village-cat')].map(el=>({id:Number(el.dataset.id),x:parseFloat(el.style.left),y:parseFloat(el.style.top),depth:Number(el.style.zIndex),moving:el.dataset.moving,frame:Number(el.dataset.frame)}))}),getState:()=>JSON.parse(JSON.stringify(state)),getPage:()=>page,getBattle:()=>battle?JSON.parse(JSON.stringify(battle)):null};
 })();
