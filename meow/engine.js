@@ -35,10 +35,44 @@
   function initial(){return {version:2,coins:300,nextId:3,cats:[{id:1,name:'橘团',color:0,pattern:1,ears:0,hp:116,atk:26,speed:12,skill:0,gen:1,parents:[],mutation:null},{id:2,name:'云朵',color:1,pattern:2,ears:1,hp:140,atk:22,speed:10,skill:1,gen:1,parents:[],mutation:null}],team:[1,2],cleared:[],battles:0,pendingReveal:null,bred:0,seen:['0-1-0','1-2-1']};}
   const roomCapacity=4, restPeriod=10*60*1000, restLimit=6, maxRooms=2500;
 
+  const roomUses=['休息间','茶室','书房','玩耍间'];
+  const furnitureNames=['竹编软垫','茶几','书架','猫爬架','绿植','纸灯'];
+  const furnitureSlots=2;
+  const validIndex=(n,length)=>Number.isInteger(n)&&n>=0&&n<length;
+
+  function validRoomDecor(decor,roomCount) {
+    if(decor===undefined)return true;
+    if(!decor||typeof decor!=='object'||Array.isArray(decor))return false;
+    return Object.entries(decor).every(([key,value])=>
+      /^\d+$/.test(key)&&String(Number(key))===key&&validIndex(Number(key),roomCount)&&
+      value&&validIndex(value.use,roomUses.length)&&Array.isArray(value.items)&&
+      value.items.length===furnitureSlots&&value.items.every(n=>n===null||validIndex(n,furnitureNames.length)));
+  }
+
+  function roomLayout(s,room) {
+    const saved=s.dormitory?.decor?.[room], use=room%roomUses.length;
+    return saved||{use,items:[use,4]};
+  }
+  function changeRoomUse(s,room,use) {
+    if(!validIndex(room,s.dormitory?.rooms)||!validIndex(use,roomUses.length))throw Error('请选择房间和用途。');
+    s.dormitory.decor??={};
+    const old=roomLayout(s,room), items=[...old.items];
+    if(items[0]===old.use)items[0]=use;
+    s.dormitory.decor[room]={use,items};
+  }
+  function furnishRoom(s,room,slot,item) {
+    if(!validIndex(room,s.dormitory?.rooms)||!validIndex(slot,furnitureSlots)||
+      item!==null&&!validIndex(item,furnitureNames.length))throw Error('请选择房间、家具和摆放位置。');
+    s.dormitory.decor??={};
+    const current=roomLayout(s,room), items=[...current.items];
+    items[slot]=item;
+    s.dormitory.decor[room]={use:current.use,items};
+  }
+
   function validDormitory(dormitory, cats) {
     if(dormitory===undefined)return true;
     if(!dormitory||!Number.isInteger(dormitory.rooms)||dormitory.rooms<2||
-      dormitory.rooms>maxRooms||!Array.isArray(dormitory.beds)||dormitory.beds.length>cats.length)return false;
+      dormitory.rooms>maxRooms||!Array.isArray(dormitory.beds)||dormitory.beds.length>cats.length||!validRoomDecor(dormitory.decor,dormitory.rooms))return false;
     const catIds=new Set(cats.map(c=>c?.id)), assigned=new Set(), sizes=new Map();
     for(const bed of dormitory.beds){
       if(!bed||!catIds.has(bed.id)||assigned.has(bed.id)||!Number.isInteger(bed.room)||
@@ -74,11 +108,11 @@
 
   function assignBed(s,id,room,now=Date.now()) {
     const d=s.dormitory;
-    if(!d||!Number.isInteger(room)||room<0||room>=d.rooms)throw Error('请选择一间已建好的宿舍。');
+    if(!d||!Number.isInteger(room)||room<0||room>=d.rooms)throw Error('请选择一间已建好的房间。');
     if(!s.cats.some(c=>c.id===id))throw Error('没有找到这只伙伴。');
     const bed=d.beds.find(b=>b.id===id);
     if(bed?.room===room)return false;
-    if(d.beds.filter(b=>b.room===room).length>=roomCapacity)throw Error('这间宿舍已经住满。');
+    if(d.beds.filter(b=>b.room===room).length>=roomCapacity)throw Error('这个房间已经没有空位。');
     if(bed)bed.room=room;
     else d.beds.push({id,room,since:now});
     return true;
@@ -87,7 +121,7 @@
   function swapBeds(s,first,second) {
     const beds=s.dormitory?.beds||[];
     const a=beds.find(b=>b.id===first), b=beds.find(b=>b.id===second);
-    if(!a||!b||a.room===b.room)throw Error('请选择住在两间不同宿舍的伙伴。');
+    if(!a||!b||a.room===b.room)throw Error('请选择安排在不同房间的伙伴。');
     [a.room,b.room]=[b.room,a.room];
   }
 
@@ -105,7 +139,8 @@
     return amount;
   }
   const Dormitory={roomCapacity,maxRooms,init:initDormitory,cost:dormitoryCost,expand:expandDormitory,
-    assign:assignBed,swap:swapBeds,rest:dormRest,claim:claimDormRest};
+    assign:assignBed,swap:swapBeds,rest:dormRest,claim:claimDormRest,
+    uses:roomUses,furniture:furnitureNames,layout:roomLayout,setUse:changeRoomUse,furnish:furnishRoom};
 
   function validate(s){
     if(!s||s.version!==2||!Number.isInteger(s.coins)||s.coins<0||!Array.isArray(s.cats)||s.cats.length<2||s.cats.length>10000||!Array.isArray(s.team)||!Array.isArray(s.cleared)||!Array.isArray(s.seen))return false;

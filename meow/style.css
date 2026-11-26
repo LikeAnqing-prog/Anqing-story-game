@@ -365,25 +365,59 @@
 .dorm-toolbar .btn .icon { width:19px; height:19px; }
 .dorm-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px; margin:3px 0; }
 .dorm-tabs .btn { min-height:44px; }
-.dorm-hint { font-size:12px; color:#5c4532; text-align:center; margin:5px 0 7px; }
-.dorm-floor { margin:0 0 7px; }
-.dorm-floor h3 { text-align:left; margin:3px 0; color:#68452e; font-size:14px; }
-.dorm-floor-rooms { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; }
-.dorm-room { position:relative; isolation:isolate; overflow:hidden; aspect-ratio:1.45; background:#744928; border-radius:3px; }
-.dorm-room-art {
-  position:absolute; inset:0; width:100%; height:100%;
-  background:url('assets/v157-dorm-atlas.webp') 0 0/200% 200% no-repeat;
+/* A single painted beam and floor span the room controls. */
+.manor-viewport {
+  overflow-x:auto; overflow-y:hidden; margin-inline:calc(-1 * max(9px,env(safe-area-inset-left))) calc(-1 * max(9px,env(safe-area-inset-right)));
+  cursor:grab; user-select:none; scrollbar-width:thin; scrollbar-color:#9a744a #ead9b7;
+  background:#a77847;
 }
-.room-theme-1 .dorm-room-art { background-position:100% 0; }
-.room-theme-2 .dorm-room-art { background-position:0 100%; }
-.room-theme-3 .dorm-room-art { background-position:100% 100%; }
+.manor-viewport:active { cursor:grabbing; }
+.manor-building {
+  --bay:clamp(154px, 46vw, 234px);
+  --hall-art:url('assets/v158-manor-hall.webp');
+  position:relative; display:flex; width:max-content; min-width:100%;
+  height:calc(var(--bay) * 4 / 3); isolation:isolate;
+}
+.manor-building::before,.manor-building::after {
+  content:""; position:absolute; left:0; right:0; z-index:-1; pointer-events:none;
+  background-image:var(--hall-art); background-repeat:repeat-x;
+}
+.manor-building::before {
+  top:0; height:73%; background-position:left top; background-size:calc(var(--bay) * 4) 119%;
+}
+.manor-building::after {
+  bottom:0; height:27%; background-position:left bottom; background-size:calc(var(--bay) * 4) 628%;
+}
+.manor-bay { position:relative; flex:0 0 var(--bay); }
+.manor-viewport button { cursor:pointer; }
+.manor-furniture {
+  position:absolute; inset:auto 9% 24%; display:flex; align-items:end; justify-content:space-between;
+  pointer-events:none;
+}
+.manor-furniture button {
+  pointer-events:auto; display:grid; place-items:center; position:relative;
+  width:max(44px,38%); aspect-ratio:1; padding:0;
+}
+.furniture-art {
+  display:block; width:100%; aspect-ratio:1;
+  background:url('assets/v158-manor-furniture.webp') left top/300% 200% no-repeat;
+}
+.furniture-empty {
+  display:grid; place-items:center; width:44px; aspect-ratio:1; border:1px dashed #9c794c;
+  border-radius:50%; color:#60452a; background:#f2dfbad9; font-size:20px;
+}
+.manor-dock {
+  display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 2px 4px;
+}
+.manor-dock p { margin:0; font-size:13px; color:#563d29; }
+.manor-dock .btn { min-height:42px; width:auto; padding-inline:10px; white-space:nowrap; }
 .dorm-room-label {
-  position:absolute; top:6px; left:6px; right:6px; display:flex; justify-content:space-between;
-  align-items:center; gap:2px; min-height:25px; padding:2px 5px;
-  background:#f4e2c8ed; border-radius:4px; color:#4a321f; font-size:12px;
+  position:absolute; top:17%; left:9%; right:9%; display:flex; justify-content:space-between;
+  align-items:center; gap:4px; min-height:36px; padding:2px 7px;
+  background:#f4e2c8ed; border-radius:4px; color:#4a321f; font-size:14px;
 }
 .dorm-room-label small { font:600 11px/1 system-ui; }
-.dorm-residents { position:absolute; inset:auto 7px 5px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:2px; align-items:end; pointer-events:none; }
+.dorm-residents { position:absolute; inset:auto 8% 6%; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:2px; align-items:end; pointer-events:none; }
 .dorm-cat { min-width:0; display:grid; align-content:end; justify-items:center; gap:1px; padding:1px; pointer-events:auto; }
 .dorm-cat>.sprite { width:min(100%,66px); filter:drop-shadow(0 1px 0 #fff2cbd0); }
 .dorm-cat b,.dorm-cat small { font-size:12px; width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -392,10 +426,6 @@
   margin:0 1px 1px; min-height:29px; aspect-ratio:1; pointer-events:auto;
   color:#fff3dc; background:#613e275e; border:1px dashed #f5e5bbd9; border-radius:6px; font-size:18px;
 }
-.dorm-build-slot { width:100%; aspect-ratio:1.45; display:grid; place-content:center; justify-items:center; gap:3px; color:#5f4632; }
-.dorm-build-slot .icon { width:25px; height:25px; }
-.dorm-build-slot small { font-size:11px; }
-.dorm-build-slot .resource-icon { width:16px; height:16px; }
 .dorm-lobby { padding:7px; background:#f7ebd4; border-radius:5px; margin:3px 0 6px; }
 .dorm-lobby-head { display:flex; align-items:center; justify-content:space-between; }
 .dorm-lobby-head h3 { font-size:14px; }
@@ -412,3 +442,16 @@
 .dorm-page #cat-list .cat-card>.sprite { max-width:74px; }
 .dorm-page #cat-list .cat-card strong { font-size:13px; }
 .dorm-page #cat-list .cat-card .small { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+
+.room-use-options,.room-decor-slots,.decor-grid { display:grid; gap:6px; margin:8px 0 12px; }
+.room-use-options,.room-decor-slots { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.decor-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.room-decor-option,.decor-pick {
+  min-width:0; display:grid; justify-items:center; align-items:end; gap:4px;
+  padding:6px 2px; border:1px solid #ab9068; border-radius:7px; color:#4a321f;
+  background:#f7e8cc; font-size:clamp(12px,3.5vw,16px);
+}
+.room-decor-option .furniture-art,.decor-pick .furniture-art { width:min(100%,68px); }
+.room-decor-option .furniture-empty { align-self:center; }
+.decor-pick.chosen { border-color:#8b6330; background:#eed29a; }
