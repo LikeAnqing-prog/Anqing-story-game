@@ -286,7 +286,7 @@ function sellVisitBouquet(state) {
 
 function cottageArt(key, label = "") {
   const image = create("img");
-  image.src = `./assets/cottage/${key}.webp`;
+  image.src = `./assets/cottage/${key}.webp?v=cartoon-room`;
   image.alt = label;
   image.draggable = false;
   return image;
@@ -368,7 +368,7 @@ function renderCottage() {
   const furniture = byId("cottageFurniture");
   furniture.hidden = !chosen;
   if (chosen) {
-    furniture.src = `./assets/cottage/${chosen}.webp`;
+    furniture.src = `./assets/cottage/${chosen}.webp?v=cartoon-room`;
     furniture.alt = ownerFurnishings[chosen].name;
   } else furniture.removeAttribute("src");
   byId("cottagePreview").hidden = !drawerOpen || !chosen || chosen === h.owner;
@@ -388,7 +388,7 @@ function renderCottage() {
     portrait.addEventListener("click", () => { showMemory = !showMemory; renderCottage(); });
     portrait.append(makeSprite(visitor.kind,"visiting-animal"));
     guest.append(portrait);
-    const greetings = { flowers:"你说的窗边花景，今天终于看到了。", quiet:"我想在这把椅子旁，再陪你坐一会儿。", water:"水缸里的小鱼刚才游到我这边啦！" };
+    const greetings = { flowers:"你说的窗边花景，今天终于看到了。", quiet:"我想在这把椅子旁，再陪你坐一会儿。", water:"这朵睡莲真好看。我想在水边多坐一会儿。" };
     speech.textContent = visitor.detail;
     if (h.memories[visitor.kind]?.mood === "fine") {
       speech.textContent = h.owner === oldFriends[visitor.kind].favorite ? greetings[h.owner] : "今天轮到我来找你啦！";

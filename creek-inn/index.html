@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#e8edce">
 <title>溪湾旅栈试玩</title>
-<link rel="stylesheet" href="./inn.css?v=cottage-season26">
-<script src="./hospitality.js?v=cottage-season26" defer></script>
-<script src="./inn.js?v=cottage-season26" defer></script>
+<link rel="stylesheet" href="./inn.css?v=cartoon-cottage-26">
+<script src="./hospitality.js?v=cartoon-cottage-26" defer></script>
+<script src="./inn.js?v=cartoon-cottage-26" defer></script>
 </head>
 <body>
 <main id="game" class="game" aria-label="溪湾旅栈">
@@ -107,13 +107,15 @@
       <div id="cottageWallet" class="cottage-wallet" aria-label="钱包"></div>
     </header>
     <section class="cottage-living" aria-label="小屋室内">
-      <div class="cottage-stage">
-        <img class="cottage-plate" src="./assets/cottage/interior.webp" alt="阳光照进阁楼，窗前铺着一张圆毯">
+      <div class="cottage-roof" aria-hidden="true"></div>
+      <div class="cottage-stage"><div class="cottage-canvas">
+        <img class="cottage-plate" src="./assets/cottage/interior.webp?v=cartoon-room" alt="浅绿叶纹墙纸，圆窗旁是一张绿格子小床，床前铺着椭圆地毯">
         <img id="cottageFurniture" class="cottage-furniture" alt="" hidden>
         <div id="cottageGuest" class="cottage-guest" hidden></div>
         <p id="cottageSpeech" class="cottage-speech" hidden></p>
         <span id="cottagePreview" class="cottage-preview" hidden>试摆中</span>
-      </div>
+      </div></div>
+      <div class="cottage-foundation" aria-hidden="true"></div>
     </section>
     <section class="cottage-bottom">
       <div id="cottageVisit" class="cottage-visit"></div>

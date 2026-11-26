@@ -658,17 +658,18 @@ dialog::backdrop { background:#293b3385; }
 .cottage-back span,.cottage-fold { font-size:13px; }
 .cottage-wallet { justify-self:end; padding:5px 9px; border:1px solid #c3a268; border-radius:16px; background:#fff2c8; font-size:15px; font-weight:750; }
 .cottage-living {
-  flex:1; min-height:0; position:relative; overflow:hidden; display:grid; place-items:center;
-  background:#dfbe89 url("./assets/cottage/interior.webp") center/cover;
+  flex:1; min-height:0; position:relative; overflow:hidden; display:flex; flex-direction:column;
+  align-items:center; background:#e4e8bc; container-type:size;
 }
-.cottage-living::before { position:absolute; content:""; inset:-12px; background:inherit; filter:blur(12px) brightness(.88); }
-.cottage-stage {
-  position:relative; width:100%; height:100%; isolation:isolate; overflow:hidden;
-  container-type:size;
+.cottage-roof { flex:4; width:100%; background:#daeadf url("./assets/cutaway/roof.jpg") center bottom/100% auto no-repeat; }
+.cottage-foundation { flex:1; width:100%; background:#e0e5ae url("./assets/cutaway/yard.jpg") center top/100% auto no-repeat; }
+.cottage-stage { position:relative; width:100%; height:min(124.96cqw,100cqh); flex:none; isolation:isolate; overflow:hidden; }
+.cottage-canvas {
+  position:absolute; left:0; bottom:min(0px,calc((100% - 124.96cqw)*.36)); width:100%; aspect-ratio:1122/1402;
 }
-.cottage-plate { position:absolute; width:100%; height:100%; object-fit:cover; object-position:50% 65%; }
-.cottage-furniture { position:absolute; right:8%; bottom:13%; width:37%; height:40%; object-fit:contain; object-position:center bottom; filter:drop-shadow(0 3px 2px #63482b38); }
-.cottage-guest { position:absolute; left:13%; bottom:15%; width:28%; height:32%; }
+.cottage-plate { position:absolute; width:100%; height:100%; }
+.cottage-furniture { position:absolute; right:10%; bottom:24%; width:34%; height:34%; object-fit:contain; object-position:center bottom; }
+.cottage-guest { position:absolute; left:14%; bottom:23%; width:23%; height:27%; }
 .cottage-pet { width:100%; height:100%; border:0; padding:0; background:transparent; }
 .visiting-animal { width:100%; height:100%; object-fit:contain; object-position:center bottom; transform-origin:50% 95%; filter:drop-shadow(0 3px 2px #63482b40); animation:breathing 2.8s ease-in-out infinite; }
 .cottage-speech,.cottage-preview { position:absolute; padding:7px 10px; border:1.5px solid #af8a57; background:#fff6db; color:#534831; font-size:13px; line-height:1.5; }
