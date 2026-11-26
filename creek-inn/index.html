@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#e8edce">
 <title>溪湾旅栈试玩</title>
-<link rel="stylesheet" href="./inn.css?v=cartoon-cottage-26">
-<script src="./hospitality.js?v=cartoon-cottage-26" defer></script>
+<link rel="stylesheet" href="./inn.css?v=panorama-26">
+<script src="./hospitality.js?v=panorama-26" defer></script>
 <script src="./inn.js?v=cartoon-cottage-26" defer></script>
 </head>
 <body>
@@ -107,15 +107,21 @@
       <div id="cottageWallet" class="cottage-wallet" aria-label="钱包"></div>
     </header>
     <section class="cottage-living" aria-label="小屋室内">
-      <div class="cottage-roof" aria-hidden="true"></div>
-      <div class="cottage-stage"><div class="cottage-canvas">
-        <img class="cottage-plate" src="./assets/cottage/interior.webp?v=cartoon-room" alt="浅绿叶纹墙纸，圆窗旁是一张绿格子小床，床前铺着椭圆地毯">
-        <img id="cottageFurniture" class="cottage-furniture" alt="" hidden>
-        <div id="cottageGuest" class="cottage-guest" hidden></div>
-        <p id="cottageSpeech" class="cottage-speech" hidden></p>
-        <span id="cottagePreview" class="cottage-preview" hidden>试摆中</span>
-      </div></div>
-      <div class="cottage-foundation" aria-hidden="true"></div>
+      <div class="cottage-stage" id="cottageViewport" tabindex="0" role="region" aria-label="横向小屋，可左右滑动或使用方向键">
+        <div class="cottage-canvas">
+          <img class="cottage-plate" src="./assets/cottage/panorama.webp" width="2172" height="724" draggable="false" alt="从绿格子床沿木地板向右，经过溪景窗和会客地毯，通往门边的家具角">
+          <button id="cottageSpot" class="cottage-spot" aria-label="布置这里的家具">
+            <img id="cottageFurniture" class="cottage-furniture" alt="" draggable="false" hidden>
+            <span id="cottageEmpty" class="cottage-empty"><b aria-hidden="true">＋</b>摆家具</span>
+            <span id="cottagePreview" class="cottage-preview" hidden>试摆中</span>
+          </button>
+          <div id="cottageGuest" class="cottage-guest" hidden></div>
+          <p id="cottageSpeech" class="cottage-speech" hidden></p>
+        </div>
+      </div>
+      <nav class="cottage-stops" id="cottageStops" aria-label="移动小屋视角">
+        <button type="button">床边</button><button type="button">会客窗</button><button type="button">家具角</button>
+      </nav>
     </section>
     <section class="cottage-bottom">
       <div id="cottageVisit" class="cottage-visit"></div>

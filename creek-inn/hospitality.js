@@ -299,6 +299,7 @@ function openCottage() {
   byId("cottageStatus").textContent = "";
   renderCottage();
   show("cottage");
+  moveCottageCamera(game.hospitality.todayVisit ? cottageLandmarks[1] : game.hospitality.owner ? cottageLandmarks[2] : cottageLandmarks[0]);
 }
 
 function commitFurniture(key) {
@@ -334,6 +335,7 @@ function renderFurnitureChoices() {
       previewFurniture = key;
       byId("cottageStatus").textContent = "";
       renderCottage();
+      moveCottageCamera(cottageLandmarks[2], true);
       byId("cottageChoices").children[Object.keys(ownerFurnishings).indexOf(key)].focus({preventScroll:true});
     });
     return button;
@@ -367,6 +369,7 @@ function renderCottage() {
   byId("cottageWallet").replaceChildren(valueWithIcon(game.wallet, "coin", false));
   const furniture = byId("cottageFurniture");
   furniture.hidden = !chosen;
+  byId("cottageEmpty").hidden = Boolean(chosen);
   if (chosen) {
     furniture.src = `./assets/cottage/${chosen}.webp?v=cartoon-room`;
     furniture.alt = ownerFurnishings[chosen].name;
@@ -423,15 +426,102 @@ function renderCottage() {
   if (drawerOpen) renderFurnitureChoices();
 }
 
+const cottageLandmarks = [0.125, 0.482, 0.752];
+let cottageCenter = cottageLandmarks[0];
+
+function moveCottageCamera(point, animate = false) {
+  const viewport = byId("cottageViewport");
+  if (!viewport.clientWidth) return;
+  const left = point * viewport.scrollWidth - viewport.clientWidth / 2;
+  const smooth = animate && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  viewport.scrollTo({left, behavior:smooth ? "smooth" : "instant"});
+  markCottageLocation();
+}
+
+function markCottageLocation() {
+  const viewport = byId("cottageViewport");
+  if (!viewport.clientWidth) return;
+  cottageCenter = (viewport.scrollLeft + viewport.clientWidth / 2) / viewport.scrollWidth;
+  const stops = byId("cottageStops").children;
+  const closest = cottageLandmarks.reduce((best, point, i) =>
+    Math.abs(point-cottageCenter) < Math.abs(cottageLandmarks[best]-cottageCenter) ? i : best, 0);
+  // On wide screens the outer landmarks can reach the edge before they reach the center.
+  const active = viewport.scrollLeft < 1 ? 0 : viewport.scrollLeft + viewport.clientWidth >= viewport.scrollWidth-1 ? stops.length-1 : closest;
+  for (let i=0; i<stops.length; i++) {
+    if (i===active) stops[i].setAttribute("aria-current","location");
+    else stops[i].removeAttribute("aria-current");
+  }
+}
+
+function initCottageCamera() {
+  const viewport = byId("cottageViewport");
+  for (const [i, button] of Array.from(byId("cottageStops").children).entries()) {
+    button.addEventListener("click", () => moveCottageCamera(cottageLandmarks[i], true));
+  }
+  viewport.addEventListener("scroll", markCottageLocation, {passive:true});
+  new ResizeObserver(() => {
+    if (dialog("cottage").open) moveCottageCamera(cottageCenter);
+  }).observe(dialog("cottage"));
+
+  viewport.addEventListener("keydown", event => {
+    if (event.target !== viewport) return;
+    const destinations = {ArrowLeft:viewport.scrollLeft - viewport.clientWidth * 0.6,
+      ArrowRight:viewport.scrollLeft + viewport.clientWidth * 0.6, Home:0, End:viewport.scrollWidth};
+    if (!(event.key in destinations)) return;
+    event.preventDefault();
+    viewport.scrollLeft = destinations[event.key];
+  });
+  viewport.addEventListener("wheel", event => {
+    if (event.ctrlKey || event.shiftKey || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
+    const step = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.clientWidth : 1;
+    event.preventDefault();
+    viewport.scrollLeft += event.deltaY * step;
+  }, {passive:false});
+
+  let drag = null;
+  let suppressClick = false;
+  viewport.addEventListener("pointerdown", event => {
+    suppressClick = false;
+    if (event.pointerType === "mouse" && event.button === 0) {
+      drag = {id:event.pointerId, start:event.clientX, left:viewport.scrollLeft};
+    }
+  });
+  viewport.addEventListener("pointermove", event => {
+    if (!drag || event.pointerId !== drag.id) return;
+    if (!event.buttons) { drag = null; return; }
+    const delta = event.clientX - drag.start;
+    if (!suppressClick && Math.abs(delta) < 5) return;
+    if (!suppressClick) {
+      viewport.setPointerCapture(event.pointerId);
+      viewport.classList.add("dragging");
+      suppressClick = true;
+    }
+    viewport.scrollLeft = drag.left - delta;
+  });
+  const endDrag = () => { drag = null; viewport.classList.remove("dragging"); };
+  viewport.addEventListener("pointerup", endDrag);
+  viewport.addEventListener("pointercancel", endDrag);
+  viewport.addEventListener("lostpointercapture", endDrag);
+  viewport.addEventListener("click", event => {
+    if (suppressClick) {
+      event.stopImmediatePropagation();
+      suppressClick = false;
+    }
+  }, true);
+}
+
 function initCottage() {
-  const toggle = () => {
-    drawerOpen = !drawerOpen;
-    previewFurniture = game.hospitality.owner ?? "flowers";
+  initCottageCamera();
+  const setDrawer = open => {
+    drawerOpen = open;
+    if (!open || !previewFurniture) previewFurniture = game.hospitality.owner ?? "flowers";
     byId("cottageStatus").textContent = "";
     renderCottage();
+    if (open) moveCottageCamera(cottageLandmarks[2], true);
   };
-  byId("cottageDress").addEventListener("click", toggle);
-  byId("cottageFold").addEventListener("click", () => { toggle(); byId("cottageDress").focus(); });
+  byId("cottageDress").addEventListener("click", () => setDrawer(!drawerOpen));
+  byId("cottageSpot").addEventListener("click", () => setDrawer(true));
+  byId("cottageFold").addEventListener("click", () => { setDrawer(false); byId("cottageDress").focus(); });
   byId("cottageInvite").addEventListener("click", () => openHospitality("friends"));
   byId("cottageGifts").addEventListener("click", () => openHospitality("gifts"));
 }
