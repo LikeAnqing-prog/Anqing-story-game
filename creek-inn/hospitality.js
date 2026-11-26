@@ -297,7 +297,8 @@ function openCottage() {
   byId("cottageStatus").textContent = "";
   renderCottage();
   show("cottage");
-  moveCottageCamera(game.hospitality.todayVisit ? cottageLandmarks[1] : game.hospitality.owner ? cottageLandmarks[2] : cottageLandmarks[0]);
+  // Frame the bed, visitor and furniture together on entry.
+  moveCottageCamera(0.43);
 }
 
 function commitFurniture(key) {
@@ -457,9 +458,13 @@ function initCottageCamera() {
     button.addEventListener("click", () => moveCottageCamera(cottageLandmarks[i], true));
   }
   viewport.addEventListener("scroll", markCottageLocation, {passive:true});
+  let lastWidth = 0;
   new ResizeObserver(() => {
-    if (dialog("cottage").open) moveCottageCamera(cottageCenter);
-  }).observe(dialog("cottage"));
+    const width = viewport.clientWidth;
+    if (!width || lastWidth === width) return;
+    lastWidth = width;
+    moveCottageCamera(cottageCenter);
+  }).observe(viewport);
 
   viewport.addEventListener("keydown", event => {
     if (event.target !== viewport) return;

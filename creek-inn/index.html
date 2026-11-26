@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#e8edce">
 <title>溪湾旅栈试玩</title>
-<link rel="stylesheet" href="./inn.css?v=room-pictures-26">
-<script src="./hospitality.js?v=room-pictures-26" defer></script>
+<link rel="stylesheet" href="./inn.css?v=compact-cottage-26">
+<script src="./hospitality.js?v=compact-cottage-26" defer></script>
 <script src="./inn.js?v=room-pictures-26" defer></script>
 </head>
 <body>
@@ -108,14 +108,16 @@
     <section class="cottage-living" aria-label="小屋室内">
       <div class="cottage-stage" id="cottageViewport" tabindex="0" role="region" aria-label="横向小屋，可左右滑动或使用方向键">
         <div class="cottage-canvas">
-          <img class="cottage-plate" src="./assets/cottage/panorama.webp" width="2172" height="724" draggable="false" alt="从绿格子床沿木地板向右，经过溪景窗和会客地毯，通往门边的家具角">
-          <button id="cottageSpot" class="cottage-spot" aria-label="布置这里的家具">
-            <img id="cottageFurniture" class="cottage-furniture" alt="" draggable="false" hidden>
-            <span id="cottageEmpty" class="cottage-empty"><b aria-hidden="true">＋</b>摆家具</span>
-            <span id="cottagePreview" class="cottage-preview" hidden>试摆中</span>
-          </button>
-          <div id="cottageGuest" class="cottage-guest" hidden></div>
-          <p id="cottageSpeech" class="cottage-speech" hidden></p>
+          <div class="cottage-interior">
+            <img class="cottage-plate" src="./assets/cottage/panorama.webp" width="2172" height="724" draggable="false" alt="从绿格子床沿木地板向右，经过溪景窗和会客地毯，通往门边的家具角">
+            <button id="cottageSpot" class="cottage-spot" aria-label="布置这里的家具">
+              <img id="cottageFurniture" class="cottage-furniture" alt="" draggable="false" hidden>
+              <span id="cottageEmpty" class="cottage-empty"><b aria-hidden="true">＋</b>摆家具</span>
+              <span id="cottagePreview" class="cottage-preview" hidden>试摆中</span>
+            </button>
+            <div id="cottageGuest" class="cottage-guest" hidden></div>
+            <p id="cottageSpeech" class="cottage-speech" hidden></p>
+          </div>
         </div>
       </div>
       <nav class="cottage-stops" id="cottageStops" aria-label="移动小屋视角">
