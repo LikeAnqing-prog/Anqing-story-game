@@ -1,7 +1,7 @@
 "use strict";
 
 const furnishings = {
-  flowers: { name: "野花盆", icon: "flower", cost: 6, flowers: true, pollen: true, detail: "蜜蜂入住时长花芽，橘蝶首晚多付 2 叶币。小白鹭每晚少付 1。" },
+  flowers: { name: "野花盆", icon: "flower", cost: 6, flowers: true, pollen: true, detail: "蜜蜂入住时长花芽。2 颗花芽可扎花束，在小屋卖给来访的朋友。橘蝶首晚多付 2 叶币。小白鹭每晚少付 1。" },
   curtain: { name: "遮光帘", icon: "curtain", cost: 8, quiet: true, detail: "灰兔住满两晚，退房多付 2 叶币。提灯萤住这里会早睡，不能送客。" },
   water: { name: "清水盆", icon: "water", cost: 6, water: true, detail: "小青鸭入住时再多付 2 叶币。" },
   flowerBox: { name: "窗外花箱", icon: "window", flowers: true, detail: "橘蝶首晚多付 2 叶币。花在窗外，小白鹭住着不受影响。" },
@@ -15,9 +15,9 @@ const furnishings = {
 };
 
 const ownerFurnishings = {
-  flowers: { name: "窗边花景", icon: "flower", cost: 8 },
+  flowers: { name: "窗边花架", icon: "flower", cost: 8 },
   quiet: { name: "安静茶座", icon: "cushion", cost: 8 },
-  water: { name: "水景摆件", icon: "water", cost: 8 }
+  water: { name: "睡莲水缸", icon: "water", cost: 8 }
 };
 
 const oldFriends = {
@@ -38,14 +38,10 @@ function newHospitality() {
 function continueHospitality(previous) {
   const next = newHospitality();
   next.memories = { ...previous.memories };
+  next.ownerOwned = previous.ownerOwned.slice();
+  next.owner = previous.owner;
   const key = previous.keepsake;
-  if (key?.startsWith("owner:")) {
-    const owner = key.slice(6);
-    if (previous.ownerOwned.includes(owner)) {
-      next.ownerOwned.push(owner);
-      next.owner = owner;
-    }
-  } else if (key && previous.gifts[key] === "kept") next.gifts[key] = "kept";
+  if (key && previous.gifts[key] === "kept") next.gifts[key] = "kept";
   else if (key && previous.inventory[key] > 0) next.inventory[key] = 1;
   return next;
 }
@@ -212,6 +208,8 @@ function refreshHospitality(message = "") {
   save();
   render();
   renderHospitality();
+  if (dialog("cottage").open) renderCottage();
+  if (dialog("build").open) openBuild();
   if (dialog("phone").open) renderPhone();
   if (dialog("receipt").open) renderReceipt();
 }
@@ -270,39 +268,172 @@ function renderFurnishingShop(panel) {
   panel.append(craft.card);
 }
 
-function renderOwnerRoom() {
-  const h = game.hospitality;
-  const scene = byId("ownerRoom");
-  const furnished = ownerFurnishings[h.owner];
-  scene.hidden = false;
-  const seat = create("div", "owner-seat");
-  if (furnished) seat.append(furnitureIcon(furnished.icon));
-  scene.replaceChildren(seat, create("span", "owner-room-label", furnished?.name ?? "老板的小屋"));
-  if (h.todayVisit) {
-    scene.append(makeSprite(h.todayVisit.kind, "owner-visitor"));
-    if (h.todayVisit.gift) scene.append(furnitureIcon(furnishings[h.todayVisit.gift].icon));
-    scene.append(create("p","owner-memory",h.todayVisit.detail));
-  }
+const bouquetBuds = 2;
+const bouquetPrice = 7;
+let drawerOpen = false;
+let previewFurniture = null;
+let showMemory = true;
+
+function sellVisitBouquet(state) {
+  const h = state.hospitality;
+  const visit = h.todayVisit;
+  if (state.phase !== "day" || !visit || visit.boughtBouquet || h.buds < bouquetBuds) return false;
+  h.buds -= bouquetBuds;
+  state.wallet += bouquetPrice;
+  visit.boughtBouquet = true;
+  return true;
 }
 
-function renderOwnerShop(panel) {
-  renderOwnerRoom();
+function cottageArt(key, label = "") {
+  const image = create("img");
+  image.src = `./assets/cottage/${key}.webp`;
+  image.alt = label;
+  image.draggable = false;
+  return image;
+}
+
+function openCottage() {
+  drawerOpen = false;
+  previewFurniture = game.hospitality.owner;
+  showMemory = true;
+  byId("cottageStatus").textContent = "";
+  renderCottage();
+  show("cottage");
+}
+
+function commitFurniture(key) {
+  const item = ownerFurnishings[key];
   const h = game.hospitality;
-  for (const [key, item] of Object.entries(ownerFurnishings)) {
-    const owned = h.ownerOwned.includes(key);
-    const { card, actions } = hospitalityCard(item.name,
-      `${Object.keys(oldFriends).filter(kind => oldFriends[kind].favorite === key).map(kind => animals[kind].name).join("、")}喜欢这里。`, item.icon);
-    actions.append(hospitalityButton(h.owner === key ? "小屋正在用" : owned ? "换上" : `购买 · ${item.cost} 叶币`, () => {
-      if (!owned) {
-        if (game.wallet<item.cost) return;
-        game.wallet -= item.cost;
-        h.ownerOwned.push(key);
-      }
-      h.owner = key;
-      refreshHospitality(`小屋已换上${item.name}`);
-    }, h.owner === key || (!owned && game.wallet<item.cost)));
-    panel.append(card);
+  if (!item || h.owner === key) return;
+  if (!h.ownerOwned.includes(key)) {
+    if (game.wallet < item.cost || ["won","failed"].includes(game.phase) || (game.result?.due && !game.result.paid)) return;
+    game.wallet -= item.cost;
+    h.ownerOwned.push(key);
   }
+  h.owner = key;
+  drawerOpen = false;
+  byId("cottageStatus").textContent = `已摆好${item.name}`;
+  save();
+  render();
+  renderCottage();
+}
+
+function renderFurnitureChoices() {
+  const h = game.hospitality;
+  const selected = previewFurniture;
+  const choices = byId("cottageChoices");
+  choices.replaceChildren(...Object.entries(ownerFurnishings).map(([key, item]) => {
+    const button = create("button", "cottage-choice");
+    button.type = "button";
+    button.setAttribute("aria-pressed", String(key === selected));
+    button.append(cottageArt(key), create("strong", "", item.name));
+    if (h.owner === key) button.append(create("small", "", "已摆上"));
+    else if (h.ownerOwned.includes(key)) button.append(create("small", "", "已拥有"));
+    else button.append(valueWithIcon(item.cost, "coin", false));
+    button.addEventListener("click", () => {
+      previewFurniture = key;
+      byId("cottageStatus").textContent = "";
+      renderCottage();
+      byId("cottageChoices").children[Object.keys(ownerFurnishings).indexOf(key)].focus({preventScroll:true});
+    });
+    return button;
+  }));
+  const offer = byId("cottageOffer");
+  offer.replaceChildren();
+  if (!selected) return;
+  const item = ownerFurnishings[selected];
+  const owned = h.ownerOwned.includes(selected);
+  const favorite = Object.keys(oldFriends).filter(kind => oldFriends[kind].favorite === selected);
+  const fans = create("div", "cottage-fans");
+  fans.append(create("span", "", "喜欢这件"));
+  for (const kind of favorite) {
+    const portrait = makeSprite(kind, "cottage-fan");
+    portrait.alt = animals[kind].name;
+    portrait.title = animals[kind].name;
+    fans.append(portrait);
+  }
+  const locked = !owned && (game.wallet < item.cost || ["won","failed"].includes(game.phase) || (game.result?.due && !game.result.paid));
+  const label = h.owner === selected ? "已摆好" : owned ? "换上家具" : game.wallet < item.cost ? `还差 ${item.cost-game.wallet} 叶币` : "买下并摆上";
+  const button = hospitalityButton(label, () => commitFurniture(selected), h.owner === selected || locked);
+  if (!owned && !locked) button.append(valueWithIcon(item.cost, "coin", false));
+  offer.append(fans, button);
+}
+
+function renderCottage() {
+  const h = game.hospitality;
+  const visitor = h.todayVisit;
+  const chosen = drawerOpen ? previewFurniture : h.owner;
+  byId("cottageDate").textContent = nightText(game.night);
+  byId("cottageWallet").replaceChildren(valueWithIcon(game.wallet, "coin", false));
+  const furniture = byId("cottageFurniture");
+  furniture.hidden = !chosen;
+  if (chosen) {
+    furniture.src = `./assets/cottage/${chosen}.webp`;
+    furniture.alt = ownerFurnishings[chosen].name;
+  } else furniture.removeAttribute("src");
+  byId("cottagePreview").hidden = !drawerOpen || !chosen || chosen === h.owner;
+  const guest = byId("cottageGuest");
+  guest.hidden = !visitor;
+  guest.replaceChildren();
+  const speech = byId("cottageSpeech");
+  speech.hidden = !visitor || !showMemory || drawerOpen;
+  const summary = byId("cottageVisit");
+  summary.hidden = drawerOpen;
+  summary.replaceChildren();
+  if (visitor) {
+    const name = animals[visitor.kind].name;
+    const portrait = create("button", "cottage-pet");
+    portrait.type = "button";
+    portrait.setAttribute("aria-label", `和${name}聊聊`);
+    portrait.addEventListener("click", () => { showMemory = !showMemory; renderCottage(); });
+    portrait.append(makeSprite(visitor.kind,"visiting-animal"));
+    guest.append(portrait);
+    const greetings = { flowers:"你说的窗边花景，今天终于看到了。", quiet:"我想在这把椅子旁，再陪你坐一会儿。", water:"水缸里的小鱼刚才游到我这边啦！" };
+    speech.textContent = visitor.detail;
+    if (h.memories[visitor.kind]?.mood === "fine") {
+      speech.textContent = h.owner === oldFriends[visitor.kind].favorite ? greetings[h.owner] : "今天轮到我来找你啦！";
+    }
+    const text = create("div", "cottage-appointment");
+    text.append(create("strong","",`${name}在小屋做客`));
+    if (visitor.gift) text.append(create("small","",`带来的礼物 · ${furnishings[visitor.gift].name}`));
+    summary.append(text);
+    if (game.phase === "day" && (h.buds >= bouquetBuds || visitor.boughtBouquet)) {
+      const sale = hospitalityButton(visitor.boughtBouquet ? "已买走花束" : "卖一束花", () => {
+        if (!sellVisitBouquet(game)) return;
+        save();
+        render();
+        byId("cottageStatus").textContent = `${name}带走了花束，收到 ${bouquetPrice} 叶币`;
+        renderCottage();
+      }, visitor.boughtBouquet);
+      if (!visitor.boughtBouquet) sale.append(create("small", "", `${bouquetBuds} 花芽换 ${bouquetPrice} 叶币`));
+      summary.append(sale);
+    }
+  } else {
+    const visit = h.visit;
+    const date = visit ? "明晚赴约" : "访客簿";
+    const text = create("div", "cottage-appointment");
+    text.append(create("strong", "", visit ? `${animals[visit.kind].name}会来小屋` : "今天还没约朋友"));
+    const count = Object.keys(h.memories).length;
+    text.append(create("small","", visit ? `${nightText(visit.night)} · ${date}` : count ? `已结识 ${count} 位旅客` : "有旅客退房后，可以邀请它来坐坐"));
+    summary.append(text);
+    if (visit) summary.append(makeSprite(visit.kind,"cottage-next"));
+  }
+  byId("cottageDrawer").hidden = !drawerOpen;
+  byId("cottageDress").setAttribute("aria-expanded", String(drawerOpen));
+  if (drawerOpen) renderFurnitureChoices();
+}
+
+function initCottage() {
+  const toggle = () => {
+    drawerOpen = !drawerOpen;
+    previewFurniture = game.hospitality.owner ?? "flowers";
+    byId("cottageStatus").textContent = "";
+    renderCottage();
+  };
+  byId("cottageDress").addEventListener("click", toggle);
+  byId("cottageFold").addEventListener("click", () => { toggle(); byId("cottageDress").focus(); });
+  byId("cottageInvite").addEventListener("click", () => openHospitality("friends"));
+  byId("cottageGifts").addEventListener("click", () => openHospitality("gifts"));
 }
 
 function renderFriendList(panel) {
@@ -366,11 +497,11 @@ function renderHospitality() {
   const panel = byId("hospitalityContents");
   panel.replaceChildren();
   byId("hospitalityWallet").replaceChildren(valueWithIcon(game.wallet), valueWithIcon(h.buds, "bud"));
-  byId("ownerRoom").hidden = true;
+  byId("hospitalityTitle").textContent = { rooms: "客房装扮", friends: "老朋友", gifts: "礼物柜" }[hospitalityTab];
   for (const button of byId("hospitalityNav").querySelectorAll("button")) {
     button.setAttribute("aria-pressed", String(button.dataset.page===hospitalityTab));
   }
-  ({ rooms:renderFurnishingShop, owner:renderOwnerShop, friends:renderFriendList, gifts:renderGiftCabinet })[hospitalityTab](panel);
+  ({ rooms:renderFurnishingShop, friends:renderFriendList, gifts:renderGiftCabinet })[hospitalityTab](panel);
 }
 
 function openHospitality(page = "rooms") {
@@ -424,7 +555,6 @@ function openKeepsakes() {
   const options = [["", "空手开张"]];
   for (const [key, count] of Object.entries(h.inventory)) if (count>0) options.push([key, furnishings[key].name]);
   for (const [key, status] of Object.entries(h.gifts)) if (status==="kept") options.push([key, furnishings[key].name]);
-  for (const key of h.ownerOwned) options.push([`owner:${key}`, ownerFurnishings[key].name]);
   picker.replaceChildren(...options.map(([key, label]) => {
     const option = create("option", "", label);
     option.value = key;
@@ -522,14 +652,16 @@ function initHospitality() {
     updateSound();
     unlockBell();
   });
-  byId("hospitalityButton").addEventListener("click", () => openHospitality("owner"));
+  byId("hospitalityButton").addEventListener("click", openCottage);
+  byId("buildFurnish").addEventListener("click", () => openHospitality("rooms"));
+  initCottage();
   byId("phoneFriends").addEventListener("click", () => openHospitality("friends"));
   byId("phoneFurnish").addEventListener("click", () => openHospitality("rooms"));
   byId("hospitalityNav").addEventListener("click", event => {
     const page = event.target.closest("button")?.dataset.page;
     if (page) openHospitality(page);
   });
-  byId("visitToday").addEventListener("click", () => openHospitality("gifts"));
+  byId("visitToday").addEventListener("click", openCottage);
   byId("lobbyDisplay").addEventListener("click", () => openHospitality("gifts"));
   byId("moveApply").addEventListener("click", () => {
     const id = byId("moveGuest").value;

@@ -4,8 +4,8 @@ const roomsPerFloor = 4;
 const maxFloors = 3;
 const weekLength = 7;
 const baseRent = [100, 120, 140];
-const extraFloorRentPerNight = 5;
-const buildCosts = [36, 56];
+const floorNightlyRates = [0, 15, 15];
+const buildCosts = [46, 50];
 const openingWallet = 8;
 const lookOutCost = 12;
 const restRoomCost = 12;
@@ -60,6 +60,8 @@ const orderCalendar = [
   [["otter", 2], ["duck", 1], ["firefly", 1], ["bee", 1], ["butterfly", 1], ["heron", 2]],
   [["heron", 1], ["duck", 1], ["butterfly", 1], ["otter", 1], ["bee", 1], ["hare", 1]]
 ];
+const coachNights = [15, 18, 20];
+const coachFee = 18;
 const referralGuests = ["otter", "hare", "heron", "duck", "firefly"];
 const commissions = [
   { id: "creek", night: 2, name: "溪游双人单", guests: ["bee", "otter"], nights: 1, bonus: 8 },
@@ -67,7 +69,8 @@ const commissions = [
   { id: "season-trip", night: 16, name: "溪湾周末双人单", guests: ["bee", "butterfly"], nights: 1, bonus: 8 },
   { id: "short-festival", night: 16, name: "溪畔旅伴 · 溪湾集会", guests: ["bee", "butterfly"], nights: 1, bonus: 14, partner: "short" },
   { id: "view-festival", night: 16, name: "观鸟协会 · 候鸟小团", guests: ["heron", "otter"], nights: 2, bonus: 18, partner: "view", view: true },
-  { id: "flower-festival", night: 16, name: "花友双人单", guests: ["butterfly", "butterfly"], nights: 1, bonus: 14, flowers: true },
+  { id: "flower-festival", night: 16, name: "花友双人单", guests: ["butterfly", "butterfly"], nights: 1, bonus: 16, flowerRooms: 2 },
+  ...[4, 11].map(night => ({ id: `flower-${night}`, night, name: "窗边赏花双人单", guests: ["butterfly", "bee"], nights: 1, bonus: 9, flowerRooms: 1 })),
   ...[4, 11, 18].map(night => ({ id: `map-${night}`, night, name: "溪湾地图 · 水路双人单", guests: ["duck", "otter"], nights: 1, bonus: 8, map: true }))
 ];
 const commissionById = new Map(commissions.map(commission => [commission.id, commission]));
@@ -89,7 +92,7 @@ function upcomingCommissions(night, business, hospitality) {
     if (commission.night <= night || commission.night > night + 2) return false;
     if (business.reservations[commission.id] === "reserved") return true;
     if (commission.map) return hospitality?.showcase === "map";
-    if (commission.flowers) return business.channels.includes("flower")
+    if (commission.flowerRooms) return business.channels.includes("flower")
       || Object.values(hospitality?.decor ?? {}).some(key => furnishings[key].flowers);
     if (commission.partner) return business.channels.includes(commission.partner);
     return commission.id !== "season-trip" || !business.channels.length;
@@ -100,7 +103,7 @@ function commissionOrder(commission) {
   const order = themedOrder(commission.night, commission.id, commission.name,
     `两位客人都退房时，另付 ${commission.bonus} 叶币。`, commission.guests, commission.nights,
     { view: Boolean(commission.view), commission: true });
-  if (commission.flowers) for (const guest of order.guests) guest.needsFlower = true;
+  if (commission.flowerRooms) for (const guest of order.guests.slice(0, commission.flowerRooms)) guest.needsFlower = true;
   return order;
 }
 
@@ -130,11 +133,13 @@ function roomActionsOpen(state) {
   return ["planning", "arrivals", "day"].includes(state.phase);
 }
 
-function rentFor(week, floorOpen) {
+function rentFor(week, floorOpen, rates = floorNightlyRates) {
   const start = week * weekLength;
   const end = start + weekLength - 1;
-  const extraNights = floorOpen.slice(1).reduce((count, night) => count + Math.max(0, end - Math.max(start, night) + 1), 0);
-  return baseRent[week] + extraNights * extraFloorRentPerNight;
+  return floorOpen.reduce((rent, firstNight, floor) => {
+    const nights = Math.max(0, end - Math.max(start, firstNight) + 1);
+    return rent + nights * (rates[floor] ?? floorNightlyRates[floor]);
+  }, baseRent[week]);
 }
 
 function applicants(night) {
@@ -153,7 +158,7 @@ function themedOrder(night, key, name, description, kinds, nights, { view = true
   };
 }
 
-function ordersFor(night, trail, { referral = false, heldButterfly = null, business = newBusiness() } = {}) {
+function ordersFor(night, trail, { referral = false, heldButterfly = null, business = newBusiness(), floors = 1 } = {}) {
   const offers = applicants(night).map(guest => ({ id: guest.id, name: animals[guest.kind].name, guests: [guest] }));
   if (night < orderCalendar.length) {
     if (heldButterfly !== null) offers.unshift(extraOrder(night, "butterfly", heldButterfly, "橘蝶留单"));
@@ -177,6 +182,10 @@ function ordersFor(night, trail, { referral = false, heldButterfly = null, busin
   }
   if (trail.birdFrom !== null && night >= trail.birdFrom && night < orderCalendar.length && !trail.birdBooked) {
     offers.unshift(themedOrder(night, "bird", "候鸟周 · 清晨观鸟", "小白鹭想在观景房等天亮。可以准备一份迎宾香包。", ["heron"], 1));
+  }
+  if (floors === maxFloors && coachNights.includes(night)) {
+    offers.unshift(themedOrder(night, "coach", "溪湾旅行团", `三位客人同住一晚，退房再付 ${coachFee} 叶币包团费。`,
+      ["duck", "bee", "butterfly"], 1, { view:false }));
   }
   const scheduled = outstandingCommission(business, night);
   if (scheduled?.night === night) offers.unshift(commissionOrder(scheduled));
@@ -295,6 +304,7 @@ function planNight(state, renewal = state.renewal) {
     eligibleDepartures = leaving.filter(guest => porters.length > 1 || guest.id !== porters[0].id).length;
     award("firefly", `提灯萤的退房小费（${eligibleDepartures} 位）`, eligibleDepartures * 2);
   }
+  if (leaving.filter(guest => guest.trip === "coach").length === 3) award("", "溪湾旅行团包团费", coachFee);
   const restGuest = state.rooms[business.restRoom];
   const shortStay = restGuest && restGuest.arrived === state.night && departed.has(restGuest.id);
   business.restStreak = shortStay ? business.restStreak + 1 : 0;
@@ -317,8 +327,8 @@ function planNight(state, renewal = state.renewal) {
     business.reservations[completed.id] = "done";
     award(completed.guests[0], `${completed.name} · 委托谢礼`, completed.bonus);
     highlights.push({ label: `${completed.name}完成`, amount: completed.bonus });
-    if (completed.flowers) unlock("flower");
-    if (!completed.view) unlock("short");
+    if (completed.flowerRooms) unlock("flower");
+    else if (!completed.view) unlock("short");
     finishedBirdCommission = Boolean(completed.view);
   }
 
@@ -376,7 +386,7 @@ function newNight(previous, night) {
   const floorOpen = previous?.floorOpen ?? [0];
   const { week } = dateFor(night);
   return {
-    night, floorOpen, floors: floorOpen.length, rent: rentFor(week, floorOpen), paid: previous?.paid ?? 0,
+    night, floorOpen, floorRates: previous?.floorRates ?? [0], floors: floorOpen.length, rent: rentFor(week, floorOpen, previous?.floorRates), paid: previous?.paid ?? 0,
     wallet: previous?.wallet ?? openingWallet, trail: previous?.trail ?? emptyTrail(), viewRoom: previous?.viewRoom ?? null,
     business: previous?.business ?? newBusiness(),
     hospitality: previous?.hospitality ?? newHospitality(), roomChoice: previous?.roomChoice ?? null,
@@ -387,7 +397,7 @@ function newNight(previous, night) {
 }
 
 function canRenew(guest, state) {
-  return state.night < orderCalendar.length - 1 && state.phase === "day" && !guest.renewed && !guest.commission && guest.nights === 1;
+  return state.night < orderCalendar.length - 1 && state.phase === "day" && !guest.renewed && !guest.commission && guest.trip !== "coach" && guest.nights === 1;
 }
 
 function nightText(night) {
@@ -847,9 +857,9 @@ function renderJournal() {
   byId("partnerList").replaceChildren(...Object.entries(partnerNames).map(([key, name]) => {
     const row = create("li", channels.includes(key) ? "partner-active" : "");
     const descriptions = key === "short"
-      ? ["会带来额外短住单，并邀请你接待溪湾集会。", `完成一张双人单，或在歇脚房连续接待两晚短住客（${restStreak}/2）。`]
+      ? ["会带来额外短住单，并邀请你接待溪湾集会。", `完成溪游或赶集双人单，或在歇脚房连续接待两晚短住客（${restStreak}/2）。`]
       : key === "view" ? ["会带来需要观景房的长住单，以及候鸟小团。", `让水獭或小白鹭住进观景房两晚（${viewNights}/2）。`]
-        : ["会持续带来喜欢花房的短住客。", "准备两间有花景的客房，接成第三周的花友双人单。"];
+        : ["会持续带来喜欢花房的短住客。", "摆一间花房，接待赏花双人单。第三周的花友聚会需要两间花房。"];
     row.append(create("strong", "", name), create("span", "", channels.includes(key) ? "合作中" : "待合作"),
       create("p", "", descriptions[channels.includes(key) ? 0 : 1]));
     return row;
@@ -931,7 +941,7 @@ function buildStatus() {
   const halted = firstNight >= orderCalendar.length || !(roomActionsOpen(game) || (game.phase === "receipt" && game.result.paid));
   const floorOpen = [...game.floorOpen, firstNight];
   return { firstNight, cost, maxed, halted, unlocked, floorOpen,
-    weeklyIncrease: rentFor(week, floorOpen) - game.rent,
+    weeklyIncrease: rentFor(week, floorOpen, game.floorRates) - game.rent,
     ready: !maxed && !halted && unlocked && game.wallet >= cost };
 }
 
@@ -985,7 +995,12 @@ function openBuild() {
   if (!rent.hidden) {
     const increaseNext = firstNight >= (week + 1) * weekLength;
     rent.textContent = `${nightText(firstNight)}可接客 · ${increaseNext ? "下周多交" : "本周多交"} `;
-    rent.append(valueWithIcon(increaseNext ? weekLength * extraFloorRentPerNight : weeklyIncrease));
+    rent.append(valueWithIcon(increaseNext ? weekLength * floorNightlyRates[game.floors] : weeklyIncrease));
+    rent.append(`（新楼每晚 ${floorNightlyRates[game.floors]} 叶币）`);
+    if (game.floors === 2) {
+      const dates = coachNights.filter(night => night >= firstNight).map(night => dateFor(night).date);
+      rent.append(dates.length ? `。三层旅栈可接旅行团，第三周第 ${dates.join("、")} 晚到店，每团占 3 间。` : "。本季旅行团已结束。");
+    }
   }
   byId("buildConfirm").hidden = maxed || halted;
   byId("buildConfirm").disabled = !ready;
@@ -1015,7 +1030,8 @@ function buildFloor() {
   game.wallet -= cost;
   game.floorOpen = floorOpen;
   game.floors = floorOpen.length;
-  game.rent = rentFor(dateFor(game.night).week, floorOpen);
+  game.floorRates = [...game.floorRates, floorNightlyRates[game.floors - 1]];
+  game.rent = rentFor(dateFor(game.night).week, floorOpen, game.floorRates);
   const rooms = Array(roomsPerFloor).fill(null);
   game.rooms.push(...rooms);
   if (game.result) game.result.nextRooms.push(...rooms);
@@ -1154,7 +1170,7 @@ function getPhoneContext() {
   const night = game.night + 1;
   const mode = game.phase === "bookings" ? "confirm" : "preview";
   const result = game.result ?? planNight({ ...game, rooms: allocation(game.rooms, game.queue, game.viewRoom, game.business.restRoom, game.hospitality, game.roomChoice) });
-  const offers = ordersFor(night, game.trail, { referral: result.referral, heldButterfly: game.carryButterfly, business: game.business });
+  const offers = ordersFor(night, game.trail, { referral: result.referral, heldButterfly: game.carryButterfly, business: game.business, floors: game.floors });
   return { mode, night, rooms: result.nextRooms, offers };
 }
 
@@ -1169,6 +1185,7 @@ function buildOrderCards(offers) {
   orderViews = offers.map(order => {
     const first = order.guests[0];
     const row = create("div", order.themed ? "order themed-order" : "order");
+    if (order.trip === "coach") row.classList.add("coach-order");
     const details = create("div");
     const bookingPrice = create("p");
     const rate = order.guests.reduce((sum, guest) => sum + animals[guest.kind].rate, 0);
@@ -1221,13 +1238,14 @@ function renderCommissionCards(night, rooms) {
       `${nightText(commission.night)} 到店 · 各住 ${commission.nights} 晚`);
     const party = create("p", "commission-date", commission.guests.map(kind => animals[kind].name).join("、"));
     const space = create("p", `commission-space${reason ? " blocked" : ""}`,
-      `需要 2 间 / 预计空 ${free} 间${commission.view ? " · 含观景房" : commission.flowers ? " · 都要有花景" : ""}`);
+      `需要 2 间 / 预计空 ${free} 间${commission.view ? " · 含观景房" : commission.flowerRooms ? ` · ${commission.flowerRooms} 间要有花景` : ""}`);
     if (reason) space.append(document.createTextNode(`（${free < 2 ? "空房不足" : reason}）`));
-    const action = create("button", "wood", reserved ? "已预约 · 可取消" : "提前预约");
+    const switching = offers.some(other => other.night === commission.night && game.business.reservations[other.id] === "reserved");
+    const action = create("button", "wood", reserved ? "已预约 · 可取消" : switching ? "同晚改约这单" : "提前预约");
     action.type = "button";
     action.id = `commission-${commission.id}`;
     action.setAttribute("aria-pressed", String(reserved));
-    action.setAttribute("aria-label", `${reserved ? "取消预约" : "提前预约"}：${commission.name}`);
+    action.setAttribute("aria-label", `${reserved ? "取消预约" : switching ? "同晚改约" : "提前预约"}：${commission.name}`);
     action.addEventListener("click", () => toggleCommission(commission.id));
     card.append(heading, dates, party, space, action);
     return card;
@@ -1320,8 +1338,8 @@ function renderPhone() {
     button.setAttribute("aria-label", picked ? `取消${label}的订单` : `接单：${label}`);
     if (restriction) {
       const view = order.guests.some(guest => guest.needsView);
-      const flowers = order.guests.some(guest => guest.needsFlower);
-      const needs = flowers ? `需要 ${order.guests.length} 间花房` : order.guests.length === 1 ? "需要 1 间观景房" : `需要 2 间空房${view ? "，含 1 间观景房" : ""}`;
+      const flowers = order.guests.filter(guest => guest.needsFlower).length;
+      const needs = flowers ? `需要 ${order.guests.length} 间空房，其中 ${flowers} 间有花景` : order.guests.length === 1 ? "需要 1 间观景房" : `需要 ${order.guests.length} 间空房${view ? "，含 1 间观景房" : ""}`;
       restriction.textContent = [needs, reason].filter(Boolean).join(" · ");
       restriction.classList.toggle("blocked", Boolean(reason));
     }
@@ -1427,6 +1445,9 @@ initHospitality();
 const saved = restore();
 if (saved) {
   ({ game, checkpoint } = saved);
+  for (const state of [game, checkpoint]) {
+    state.floorRates ??= state.floorOpen.map((_, floor) => floor ? 5 : 0);
+  }
   game.business ??= newBusiness();
   checkpoint.business ??= newBusiness();
   game.hospitality ??= newHospitality();

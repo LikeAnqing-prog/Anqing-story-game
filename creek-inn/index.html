@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#e8edce">
 <title>溪湾旅栈试玩</title>
-<link rel="stylesheet" href="./inn.css?v=stays-and-gifts">
-<script src="./hospitality.js?v=stays-and-gifts" defer></script>
-<script src="./inn.js?v=stays-and-gifts" defer></script>
+<link rel="stylesheet" href="./inn.css?v=cottage-season26">
+<script src="./hospitality.js?v=cottage-season26" defer></script>
+<script src="./inn.js?v=cottage-season26" defer></script>
 </head>
 <body>
 <main id="game" class="game" aria-label="溪湾旅栈">
@@ -99,20 +99,51 @@
   </div>
 </dialog>
 
+<dialog id="cottage" class="cottage" aria-labelledby="cottageTitle">
+  <div class="cottage-screen">
+    <header class="cottage-header">
+      <form method="dialog"><button class="cottage-back" aria-label="离开小屋">‹ <span>返回</span></button></form>
+      <div><p id="cottageDate"></p><h2 id="cottageTitle">我的小屋</h2></div>
+      <div id="cottageWallet" class="cottage-wallet" aria-label="钱包"></div>
+    </header>
+    <section class="cottage-living" aria-label="小屋室内">
+      <div class="cottage-stage">
+        <img class="cottage-plate" src="./assets/cottage/interior.webp" alt="阳光照进阁楼，窗前铺着一张圆毯">
+        <img id="cottageFurniture" class="cottage-furniture" alt="" hidden>
+        <div id="cottageGuest" class="cottage-guest" hidden></div>
+        <p id="cottageSpeech" class="cottage-speech" hidden></p>
+        <span id="cottagePreview" class="cottage-preview" hidden>试摆中</span>
+      </div>
+    </section>
+    <section class="cottage-bottom">
+      <div id="cottageVisit" class="cottage-visit"></div>
+      <div id="cottageDrawer" class="cottage-drawer" hidden>
+        <div class="cottage-drawer-head"><h3>挑一件家具</h3><button id="cottageFold" class="cottage-fold">收起</button></div>
+        <div id="cottageChoices" class="cottage-choices" aria-label="家具款式"></div>
+        <div id="cottageOffer" class="cottage-offer"></div>
+      </div>
+      <p id="cottageStatus" role="status" class="cottage-status"></p>
+      <nav class="cottage-tools" aria-label="小屋功能">
+        <button id="cottageDress" aria-controls="cottageDrawer" aria-expanded="false"><i class="furniture-icon furniture-cushion" aria-hidden="true"></i>换家具</button>
+        <button id="cottageInvite"><i class="journal-icon" aria-hidden="true"></i>邀朋友</button>
+        <button id="cottageGifts"><i class="cottage-present" aria-hidden="true"></i>礼物柜</button>
+      </nav>
+    </section>
+  </div>
+</dialog>
+
 <dialog id="hospitality" class="paper hospitality" aria-labelledby="hospitalityTitle">
   <div class="hospitality-layout">
     <header class="hospitality-head">
-      <div><h2 id="hospitalityTitle">老板的小屋</h2><p id="hospitalityWallet"></p></div>
-      <form method="dialog"><button class="mini-button" aria-label="关闭小屋">×</button></form>
+      <div><h2 id="hospitalityTitle">客房装扮</h2><p id="hospitalityWallet"></p></div>
+      <form method="dialog"><button class="mini-button" aria-label="返回上一页">×</button></form>
     </header>
     <nav id="hospitalityNav" class="hospitality-nav" aria-label="小屋菜单">
       <button class="wood" data-page="rooms">客房装扮</button>
-      <button class="wood" data-page="owner">我的小屋</button>
       <button class="wood" data-page="friends">老朋友</button>
       <button class="wood" data-page="gifts">礼物柜</button>
     </nav>
     <div class="hospitality-scroll">
-      <div id="ownerRoom" class="owner-room" hidden></div>
       <div id="hospitalityContents"></div>
     </div>
     <p id="hospitalityStatus" class="hospitality-status" role="status"></p>
@@ -132,7 +163,7 @@
 <dialog id="keepsake" class="paper" aria-labelledby="keepsakeTitle">
   <div class="paper-inner">
     <h2 id="keepsakeTitle">带一件物件开下一季</h2>
-    <p>熟客回忆和合作客源会留下。</p>
+    <p>小屋家具、熟客回忆和合作客源都会留下。还可以带一件旅馆物品。</p>
     <label class="hospitality-picker">招牌物件 <select id="keepsakeSelect"></select></label>
     <div class="dialog-actions">
       <form method="dialog"><button class="wood">返回账单</button></form>
@@ -218,7 +249,7 @@
       <p id="buildRent"></p>
       <button class="wood" id="buildConfirm"></button>
     </section>
-    <div class="dialog-actions">
+    <div class="dialog-actions"><button id="buildFurnish" class="wood">客房装扮</button>
       <form method="dialog"><button class="wood primary">回到旅馆</button></form>
     </div>
   </div>
@@ -232,7 +263,7 @@
       <li>用叶币买客房摆件。查看客人对房间的反应，退房后可以在手机邀请老朋友来小屋做客。</li>
       <li>双人单可提前预约。留够房间，到店当晚会自动选中这一单。两位客人退房时会给委托谢礼。</li>
       <li>点动物看本领。每天可请一位到期的客人多留一晚，每位客人只能续住一次。续住会延后退房奖励，也会占一间房。</li>
-      <li>结算后查看明晚订单，关手机就进入下一天。每七晚交房租，交清后可以扩建。新增楼层从可接客的第一晚起，每层每晚多收 5 叶币。</li>
+      <li>结算后查看明晚订单，关手机就进入下一天。每七晚交房租，交清后可以扩建。新楼每层每晚增加 15 叶币房租。开到三层，第三周会收到旅行团订单。</li>
     </ol>
     <div class="dialog-actions"><form method="dialog"><button class="wood primary">回到旅馆</button></form></div>
   </div>
