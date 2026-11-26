@@ -25,7 +25,7 @@ function mutantSprite(c,cls=''){const a=mutantAtlas(c);return `<span class="spri
 function sprite(c,cls=''){if(mutantAtlas(c)&&!G.rare(c))return mutantSprite(c,cls);if(G.rare(c))return `<span class="sprite rare-sprite ${cls}" role="img" aria-label="${G.RARES[c.rareGene].name}" style="background-image:url('${ASSET('v6-rare-cats-clean')}');background-size:300% 200%;background-position:${c.rareGene%3*50}% ${Math.floor(c.rareGene/3)*100}%"></span>`;return `<span class="sprite ${cls}" role="img" aria-label="${G.COLORS[c.color]}${G.PATTERNS[c.pattern]}${G.EARS[c.ears]}猫" style="background-image:url('${ASSET(c.ears?'v2-cats-round':'v2-cats')}');background-position:${c.pattern*50}% ${c.color*50}%">${c.mutation!==null&&c.mutation!==undefined?`<span class="mutation">${icon(G.MUTATIONS[c.mutation].icon)}</span>`:''}</span>`;}
 function discoverySprite(c,unlocked){return sprite(c,unlocked?'':'locked-silhouette');}
 function rememberParents(){state.breedingParents=[...parents];return save();}
-function btn(text,action,opts={}){return `<button type="button" class="skin btn ${opts.cls||''}" data-action="${action}" ${opts.id!==undefined?`data-id="${esc(opts.id)}"`:''} ${opts.disabled?'disabled':''} ${opts.label?`aria-label="${esc(opts.label)}"`:''}>${opts.cls==='back'||text===''&&opts.icon===13?rect('v8-square-back',[0,0,1,1],'square-back'):skin('button',opts.disabled?4:opts.tone??0)}${opts.icon!==undefined?icon(opts.icon):''}<span>${text}</span></button>`;}
+function btn(text,action,opts={}){return `<button type="button" class="skin btn ${opts.cls||''}" data-action="${action}" ${opts.id!==undefined?`data-id="${esc(opts.id)}"`:''} ${opts.disabled?'disabled':''} ${opts.pressed===undefined?'':`aria-pressed="${opts.pressed}"`} ${opts.label?`aria-label="${esc(opts.label)}"`:''}>${opts.cls==='back'||text===''&&opts.icon===13?rect('v8-square-back',[0,0,1,1],'square-back'):skin('button',opts.disabled?4:opts.tone??0)}${opts.icon!==undefined?icon(opts.icon):''}<span>${text}</span></button>`;}
 const panel=(content,cls='',type=0)=>`<section class="skin panel ${cls}">${skin('panel',type)}${content}</section>`;
 const cat=id=>state.cats.find(c=>c.id===Number(id));
 function receiveState(next){clearTimeout(battleTimer);clearTimeout(birthTimer);clearTimeout(levelTimer);battle=null;battlePending=null;battleCue=null;rewardPending=null;levelShowing=null;welcomeShowing=null;growthSession=null;state=G.migrate(next);navHistory=[];parentSlot=null;battleMode='story';challengeId=null;parents=[...state.breedingParents];familyId=state.cats.at(-1).id;stage=Math.min(10,state.cleared.length+1);breedFocus=null;mutationPlan=null;rareDew=0;page=state.pendingReveal?'reveal':'home';closeModal();render();toast('已同步另一窗口的新进度。未结算的挑战可免费重试。');}
@@ -264,25 +264,31 @@ const resourceNames=['铜钱','灵感','历练经验','星露','心愿叶'];
 function resourceIcon(i){if(i===4)return '<span class="leaf-currency">'+icon(3)+'</span>';return `<span class="resource-icon" aria-hidden="true" style="background-position:${i%2*100}% ${Math.floor(i/2)*100}%"></span>`;}
 function resource(i,value){return `<span class="resource-chip" title="${resourceNames[i]} ${esc(value)}" aria-label="${resourceNames[i]} ${esc(value)}">${resourceIcon(i)}<span>${esc(value)}</span></span>`;}
 function rareNote(c){return G.rare(c)?panel(`<h3 class="red">超稀有 · ${G.RARES[c.rareGene].name}</h3><p class="note">${G.RARES[c.rareGene].desc}</p><p class="small">保留双亲的基础基因与本领，额外拥有稀有外观和天赋。</p>`,'rare-note'):'';}
-function rareControls(a,b) {
-  const r=G.rarityInfo(state,a,b,rareDew);
-  return panel(`<h3>${resourceIcon(3)} 超稀有品种</h3>
-    <p class="small">获得稀有体态和专属天赋，例如月角猫入场为全队添护盾。</p>
-    <p class="rare-chance">本次出现概率 <b>${pct(r.chance)}</b></p>
-    <p class="small">${r.pity?'本次触发保底，必出超稀有品种。':
-      '基础 2% ＋ 稀有亲本 '+r.bloodBonus+' 个百分点 ＋ 星露 '+r.dewBonus+' 个百分点。'}</p>
-    <p class="small dew-balance">现有 ${resource(3,state.starDew)} 星露 · 每投入一滴，概率增加 4 个百分点</p>
-    <div class="dew-options">${[0,1,2,3].map(n=>btn(n?resource(3,n):'不投入','rare-dew',{
-      id:n,tone:rareDew===n?1:2,cls:'compact',label:n?'投入 '+n+' 滴星露':'不投入星露',
-      disabled:n>state.starDew||r.pity&&n>0})).join('')}</div>
-    <p class="small">${r.pity?'这次无需投入星露。':'最多再 '+r.remaining+' 次必出。星露在开始繁育时扣除，未抽到也会消耗。'}</p>
-    <h4>如果抽到超稀有，希望是哪一种？</h4>
-    <div class="inline-actions">${btn('探索新品种','rare-mode',{id:'explore',tone:rareMode==='explore'?1:2,cls:'compact'})}
-      ${btn('传承亲本','rare-mode',{id:'inherit',tone:rareMode==='inherit'?1:2,cls:'compact'})}</div>
-    <p class="small">${rareMode==='explore'?'优先得到未收录的品种，集齐后随机。':
-      '有稀有亲本时，60% 直接沿袭亲本品种，其余随机。'} 两种方式的出稀有概率相同。</p>
-    <div class="inline-actions">${btn(resource(1,3)+' → '+resource(3,1),'craft-dew',{tone:2,cls:'compact',
-      disabled:state.geneNotes<3,label:'消耗 3 灵感，凝成 1 滴星露'})}${btn('看看稀有猫','rare-book',{tone:2,cls:'compact'})}</div><p class="small">新星纪录或远行胜利也能获得星露。</p>`,'rare-plan');
+function birthOption(label, action, id, active, disabled=false) {
+  return btn(label,action,{id,tone:active?1:2,cls:'compact',pressed:active,disabled});
+}
+
+function rareControls(r) {
+  const source=['基础 2%',r.bloodBonus?'亲本 +'+r.bloodBonus+'%':'',r.dewBonus?'星露 +'+r.dewBonus+'%':''].filter(Boolean).join(' · ');
+  const dewHint=r.pity?'本次保底，无需星露。':rareDew?
+    '本次会消耗 '+rareDew+' 滴，未抽中也扣除。':'每滴星露让超稀有概率提高 4 个百分点。';
+  return `<section class="birth-controls rare-plan" aria-label="超稀有品种设置">
+    <div class="birth-control-heading"><h3>${resourceIcon(3)} 投入星露</h3><small>持有 ${state.starDew} 滴</small></div>
+    <div class="birth-choices four" role="group" aria-label="投入几滴星露">
+      ${[0,1,2,3].map(n=>birthOption(n?n+' 滴':'不投入','rare-dew',n,rareDew===n,n>state.starDew||r.pity&&n>0)).join('')}
+    </div><p class="birth-hint">${dewHint}</p>
+    ${r.pity?'':`<p class="birth-hint odds-source">${source}</p>`}
+    <div class="rare-preference">
+      <p><b>抽中以后</b> · ${rareMode==='explore'?'优先未收录品种':'有稀有亲本时，60% 沿袭亲本，其余随机'}</p>
+      <div class="birth-choices two" role="group" aria-label="抽中后的品种偏好">
+        ${birthOption('探索新品种','rare-mode','explore',rareMode==='explore')}
+        ${birthOption('传承亲本','rare-mode','inherit',rareMode==='inherit')}
+      </div><p class="birth-hint">这里只选品种方向，抽中概率一样。</p>
+    </div>
+    <div class="birth-minor-actions">
+      ${btn('3 灵感换 1 星露','craft-dew',{tone:2,cls:'compact',disabled:state.geneNotes<3})}
+      ${btn('看稀有图鉴','rare-book',{tone:2,cls:'compact'})}</div>
+  </section>`;
 }
 function rareBook(){return shell('稀有猫手记','下一次相逢，会是谁',`${bookTop()}<p class="note center">已遇见 ${state.rareSeen.length} / 6 · 点卡片看天赋</p><div class="rare-catalog">${G.RARES.map((r,i)=>`<button class="skin cat-card ${state.rareSeen.includes(i)?'':'undiscovered'}" data-action="rare-detail" data-id="${i}">${skin()}${discoverySprite({rareGene:i,color:0,pattern:0,ears:0,mutation:null},state.rareSeen.includes(i))}<strong>${r.name}</strong><span class="small">${state.rareSeen.includes(i)?'已点亮':'尚未遇见'}</span><span class="small">${r.desc.split('：')[0]}</span></button>`).join('')}</div>${btn('带着期待去繁育','breed',{icon:9})}`,'book');}
 function resourceInfo(){modal('小院里的四样宝贝',`<div class="resource-legend"><p>${resource(0,state.coins)} 铜钱：新纪录、个人历练、心愿与巡游获得；用于繁育、特训、突破和传习。</p><p>${resource(1,state.geneNotes)} 灵感：新猫、重复模样与新星纪录获得；6 点指定普通突变，或 3 点凝成星露。</p><p>${resource(2,'+')} 历练经验：首次历练、特训和巡游心得获得；Lv.3 选专长、Lv.6 突破、Lv.10 结业。</p><p>${resource(3,state.starDew)} 星露：提升超稀有概率；新星纪录或远行胜利可得 1 滴。</p></div>`,btn('去繁育','breed',{icon:9}));}
@@ -437,51 +443,63 @@ function patrol(){const p=G.patrolInfo(state);modal('小队巡游',`<p>通关后
 function battleUnitDetail(uid){if(battlePending){battle=battlePending;battlePending=null;battleCue=null;render();}const u=battle?.units.find(x=>x.uid===uid);if(!u)return;clearTimeout(battleTimer);modal(`${u.side?'敌方':'我方'} · ${esc(u.name)}`,`${sprite(u)}<p>生命 ${u.life} / ${u.maxHp} · 护盾 ${u.shield}</p><p>${G.SKILLS[u.skill].name}：${G.SKILLS[u.skill].desc}</p>${skillEffect(u)}${rangeCards(u,true)}<p class="small">${G.Growth.lessons(u).filter(x=>x.unlocked).map(x=>x.name+'：'+x.desc).join('<br>')}</p><p class="note">${[['poison','毒伤'],['frozen','冰冻'],['rooted','定身'],['taunt','挑衅'],['regen','回春'],['fury','鼓舞']].filter(([k])=>u[k]>0).map(([k,n])=>n+' '+u[k]).join(' · ')||'目前没有持续状态'}</p>`,btn('继续观战','unit-resume',{tone:1}));modalRoot.querySelector('.modal').classList.add('unit-detail-modal');}
 
 
-function planControls(a,b){const p=G.possibilities(state,a,b,breedFocus),directed=!!breedFocus,labels={color:'毛色',pattern:'花纹',ears:'耳型',skill:'本领'},value=field=>({color:G.COLORS[a.color],pattern:G.PATTERNS[a.pattern],ears:G.EARS[a.ears],skill:G.SKILLS[a.skill].name})[field],same=directed&&a[breedFocus]===b[breedFocus];return panel(`<div class="inherit-heading"><h3>这次，想留下什么？</h3></div>
- <div class="inherit-modes" role="group" aria-label="遗传方式">${[['natural','自然遗传','不额外花费'],['directed','指定遗传','额外 '+resource(0,20)]].map(([id,name,cost])=>`<button class="skin inherit-mode" data-action="breed-mode" data-id="${id}" aria-pressed="${directed===(id==='directed')}">${skin('button',directed===(id==='directed')?1:2)}<strong>${name}</strong><small>${cost}</small></button>`).join('')}</div>
- ${directed?`<p class="inherit-step">留下谁的特点？</p><div class="inherit-parents" role="group" aria-label="选择遗传来源">${[a,b].sort((x,y)=>x.id-y.id).map(c=>`<button class="skin inherit-parent" data-action="breed-source" data-id="${c.id}" aria-pressed="${c.id===a.id}" aria-label="继承${esc(c.name)}的特点">${skin('button',c.id===a.id?1:2)}${sprite(c)}<span><b>${esc(c.name)}</b><small>${c.id===a.id?'已选来源':'点选这只'}</small></span></button>`).join('')}</div>
- <div class="inherit-fields" role="group" aria-label="选择保留的一项特征">${Object.entries(labels).map(([id,name])=>`<button class="skin inherit-field" data-action="breed-focus" data-id="${id}" aria-pressed="${breedFocus===id}">${skin('button',breedFocus===id?1:2)}<span>${name}</span></button>`).join('')}</div>
- <div class="inherit-result" aria-live="polite"><span>后代的${labels[breedFocus]}</span><strong>${esc(value(breedFocus))}</strong><p>来自${esc(a.name)} · 这一项确定继承</p></div>
- <p class="small inherit-rule">${breedFocus==='skill'?'外观仍由双亲分别遗传，不会因为本领相同而长得一样。':'其他外观特征与本领仍分别遗传，不会整只复制。'}仍有普通突变与超稀有机会。</p>
- ${same?`<div class="inherit-same"><p>双亲的${labels[breedFocus]}相同，自然遗传也会得到。</p><button data-action="breed-mode" data-id="natural">改用自然遗传，省下 ${resource(0,20)}</button></div>`:'<p class="inherit-charge">这里只做预览，开始繁育时才额外扣除 '+resource(0,20)+'。</p>'}`:
- `<div class="inherit-natural"><div class="inherit-natural-cats">${sprite(a)}<span>×</span>${sprite(b)}</div><h3>让它带着自己的模样来</h3><p>毛色、花纹、耳型和本领分别从双亲遗传。<br>自然繁育也有突变机会。</p></div>`}
- ${inheritanceSummary(a,b)}
- ${referenceEntry('后代模样',`<p class="small">基础外观的新图鉴概率；未发现的猫只显示剪影。</p><div class="outcome-list">${p.outcomes.map(c=>`<div class="outcome">${discoverySprite(c,state.seen.includes(G.key(c)))}<span>${G.COLORS[c.color]}·${G.PATTERNS[c.pattern]}<br>${G.EARS[c.ears]} · ${pct(c.chance)}${c.newLook?' · 新':''}</span></div>`).join('')}</div><p class="small">${['color','pattern','ears'].every(k=>a[k]===b[k])?'双亲基础外观相同，普通后代会相似，仍有突变机会。':'基础外观按各项独立遗传，超稀有外观另行判定。'}</p>`,9,'新图鉴 '+pct(p.novelChance))}`,'plan-panel inheritance-planner');}
+function planControls(a,b) {
+  const p=G.possibilities(state,a,b,breedFocus), directed=!!breedFocus;
+  const labels={color:'毛色',pattern:'花纹',ears:'耳型',skill:'本领'};
+  return `<section class="birth-controls genetics-controls">
+    <div class="birth-control-heading"><h3>遗传设置</h3></div>
+    <div class="birth-choices two" role="group" aria-label="遗传方式">
+      ${birthOption('自然遗传','breed-mode','natural',!directed)}
+      ${birthOption('指定一项 · +20 铜钱','breed-mode','directed',directed)}
+    </div>
+    ${directed?`<p class="birth-hint">选择从哪只亲本继承哪一项。</p>
+      <div class="birth-choices two" role="group" aria-label="选择遗传来源">${[a,b].sort((x,y)=>x.id-y.id).map(c=>
+        birthOption(esc(c.name),'breed-source',c.id,c.id===a.id)).join('')}</div>
+      <div class="birth-choices four" role="group" aria-label="指定遗传特征">${Object.entries(labels).map(([id,name])=>
+        birthOption(name,'breed-focus',id,breedFocus===id)).join('')}</div>
+      ${a[breedFocus]===b[breedFocus]?'<p class="birth-hint red">双亲这项相同，用自然遗传可省 20 铜钱。</p>':''}`:''}
+    ${inheritanceSummary(a,b)}
+ ${referenceEntry('后代模样',`<p class="small">基础外观的新图鉴概率；未发现的猫只显示剪影。</p><div class="outcome-list">${p.outcomes.map(c=>`<div class="outcome">${discoverySprite(c,state.seen.includes(G.key(c)))}<span>${G.COLORS[c.color]}·${G.PATTERNS[c.pattern]}<br>${G.EARS[c.ears]} · ${pct(c.chance)}${c.newLook?' · 新':''}</span></div>`).join('')}</div><p class="small">${['color','pattern','ears'].every(k=>a[k]===b[k])?'双亲基础外观相同，普通后代会相似，仍有突变机会。':'基础外观按各项独立遗传，超稀有外观另行判定。'}</p>`,9,'新图鉴 '+pct(p.novelChance))}</section>`;
+}
 
 function mutationPortrait(i){const owned=state.cats.find(c=>c.mutation===i&&!G.rare(c)),sample=owned||{color:0,pattern:0,ears:0,mutation:i};return discoverySprite(sample,state.mutationSeen.includes(i));}
 function mutationGallery(action){return `<div class="catalog-grid mutation-gallery">${G.MUTATIONS.map((m,i)=>`<button class="skin cat-card" data-action="${action}" data-id="${i}">${skin()}${mutationPortrait(i)}<strong>${m.name}</strong><span class="small">${state.mutationSeen.includes(i)?'已发现':'未发现'}</span></button>`).join('')}</div>`;}
 function mutationPicker(){modal('想留下哪种小毛病？',`<p class="small">指定花费 ${resource(1,6)}；先自然发现新突变，才能定向培养。点卡片看作用。</p>${mutationGallery('mutation-preview')}`,btn('自然随机','mutation-plan',{id:'',tone:2}));modalRoot.querySelector('.modal').classList.add('mutation-picker-modal');}
 function mutationDetail(i,picking=false){const m=G.MUTATIONS[i];if(!m)return;const seen=state.mutationSeen.includes(i),owned=state.cats.find(c=>c.mutation===i),canPick=(i<3||seen)&&state.geneNotes>=6;modal(m.name,`<div class="mutation-portrait">${mutationPortrait(i)}</div>${picking?btn('指定这只 '+resource(1,6),'mutation-plan',{id:i,tone:1,disabled:!canPick})+(!canPick?'<p class="small">'+(!seen&&i>=3?'先自然发现这类突变。':'还需积攒灵感。')+'</p>':''):''}<p class="center mutation-joke">${seen?(m.joke||'小小变化，也是它的拿手好戏。'):'先留一点悬念，等它来到小院。'}</p><p class="note">${m.desc}</p><p class="small">${seen?'已收录；突变不改变基础遗传项，出战效果另外生效。':'自然繁育可遇见：普通突变基础 8%，连续 7 次未出后下一次保证突变；优先未收录种类。'}</p>`,picking?btn('返回挑选','mutation-picker',{tone:2}):owned?btn('看看它','detail',{id:owned.id}):btn('去繁育','breed',{tone:1}));}
-function mutationComparison() {
-  return `<section class="mutation-comparison" aria-label="两种出生变化">
-    <h3>一次繁育，分别抽两次</h3>
-    <div class="mutation-types">
-      <div>${icon(3)}<strong>普通突变</strong><span>添一个特殊特征</span><small>例 · 叶芽尾，生命 +15</small></div>
-      <div>${resourceIcon(3)}<strong>超稀有品种</strong><span>稀有体态＋专属天赋</span><small>例 · 月角猫，开场为全队添盾</small></div>
+function ordinaryOutcome() {
+  const name=G.MUTATIONS[mutationPlan]?.name;
+  if(name) return {chance:1,status:'指定 · '+name};
+  if(useBlessing&&state.blessings>0) return {chance:1,status:'心愿叶保底'};
+  if(state.dryStreak>=7) return {chance:1,status:'本次保底'};
+  return {chance:.08,status:'最多再 '+(8-state.dryStreak)+' 次必出'};
+}
+
+function birthOdds(ordinary,rare) {
+  return `<section class="birth-odds" aria-label="本次出生概率">
+    <div class="birth-odds-grid" aria-live="polite">
+      <div class="birth-outcome ordinary"><h3>${icon(3)} 普通突变</h3>
+        <strong>${pct(ordinary.chance)}</strong><p>额外特征 · 如叶芽尾</p><small>${ordinary.status}</small></div>
+      <div class="birth-outcome rare"><h3>${resourceIcon(3)} 超稀有品种</h3>
+        <strong>${pct(rare.chance)}</strong><p>稀有外形＋专属天赋</p><small>${rare.pity?'本次保底':'最多再 '+rare.remaining+' 次必出'}</small></div>
     </div>
-    <p>同一只小猫可以同时是月角猫、拥有叶芽尾。两种效果都生效。</p>
+    <p class="birth-hint center">两项分别抽，同一只小猫可以同时拥有。</p>
   </section>`;
 }
 
 function mutationControls() {
-  const selected=mutationPlan!==null, m=G.MUTATIONS[mutationPlan];
-  const blessed=useBlessing&&state.blessings>0, guaranteed=selected||blessed||state.dryStreak>=7;
-  const status=selected?'必出 '+m.name:blessed?'心愿叶保底，种类随机':guaranteed?'本次触发保底，种类随机':'最多再 '+(8-state.dryStreak)+' 次必出';
-  const leaf=!selected&&state.blessings>0?btn(
-    blessed?'已用心愿叶':'用心愿叶 '+resource(4,state.blessings),'blessing',
-    {tone:blessed?1:2,cls:'compact',icon:3}):'';
-  return panel(`<h3>${icon(3)} 普通突变 <small>发现 ${state.mutationSeen.length}/${G.MUTATIONS.length}</small></h3>
-    <p class="small">给小猫添一个特殊特征，同时带来对应效果。</p>
-    <p class="rare-chance">本次出现概率 <b>${guaranteed?'100%':'8%'}</b></p>
-    <p class="small">${status}</p>
-    ${selected?`<div class="mutation-choice">${mutationPortrait(mutationPlan)}<div><h3>${m.name}</h3>
-      <p class="small">${m.desc}</p></div></div>`:''}
-    <div class="inline-actions">${selected?btn('自然随机','mutation-plan',{id:'',tone:2,cls:'compact'}):leaf}
-      ${btn(selected?'换一种':'指定突变','mutation-picker',{tone:2,cls:'compact'})}</div>
-    <div class="mutation-inline-notes">
-      <p>心愿叶保证随机出一种。花 ${resource(1,6)} 可指定种类，开始繁育时扣除。</p>
-      <p>随机时优先抽未发现的种类。每次繁育得 1 灵感，重复外观额外 +1，超稀有额外 +3。</p>
-    </div>`,'plan-panel mutation-plan');
+  const m=G.MUTATIONS[mutationPlan], blessed=useBlessing&&state.blessings>0;
+  return `<section class="birth-controls mutation-plan" aria-label="普通突变设置">
+    <div class="birth-control-heading"><h3>${icon(3)} 普通突变</h3><small>已发现 ${state.mutationSeen.length}/${G.MUTATIONS.length}</small></div>
+    <div class="birth-choices three" role="group" aria-label="选择普通突变方式">
+      ${birthOption('自然随机','mutation-plan','',!m&&!blessed)}
+      ${birthOption('心愿叶','blessing',undefined,blessed,state.blessings===0)}
+      ${birthOption('指定突变','mutation-picker',undefined,!!m)}
+    </div>
+    <p class="birth-hint">${m?'<b>'+m.name+' · '+m.desc+'</b>，消耗 6 灵感。':
+      blessed?'消耗 1 心愿叶，必出随机普通突变。':
+      '心愿叶保一次随机突变，6 灵感可指定种类。'}</p>
+    <p class="birth-hint">持有 ${state.blessings} 心愿叶 · ${state.geneNotes} 灵感</p>
+  </section>`;
 }
 function comboDetail(id){const [color,pattern,ears]=id.split('-').map(Number),c={color,pattern,ears,mutation:null},seen=state.seen.includes(id);modal(seen?G.lookName(id):'尚未发现的模样',`${discoverySprite(c,seen)}<p class="center">${seen?'已经点亮这页图鉴':'遇见后，才会揭晓它真正的模样。'}</p><p class="note">通过繁育或迎接新伙伴，发现更多毛色、花纹与耳型组合。</p>`,btn('去繁育','breed',{icon:9})+btn('关闭','modal-close',{tone:2}),11);}
 function squadCoach(){const members=state.team.map(cat),rule=G.encounter(state,stage,battleMode),poison=rule.skills.includes(3),control=rule.skills.some(i=>[7,11].includes(i)),counter=rule.skills.includes(5),hasCleanse=members.some(c=>c.skill===8||c.skill===2&&c.growthPath==='healer'),hasControl=members.some(c=>[7,11].includes(c.skill)),hasHunter=members.some(c=>c.growthPath==='hunter'),need=poison?'敌方会持续施毒':control?'敌方会限制行动或移动':counter?'敌方受击会反击':rule.skills.includes(2)?'敌方有治疗，要尽早减员':'先让输出有时间发挥';const idea=poison?(hasCleanse?'队伍已有解毒手段，留意治疗猫能否及时行动。':'带上会春风或清露解毒的伙伴。'):control?'春风可以解控；远程猫被定身后仍能攻击范围内目标。':counter?'多次直伤也会多次触发反击；毒爪消耗、添盾与治疗能减少损失。':rule.skills.includes(2)?'让输出猫靠同一侧站位，或用冰铃打断治疗。':'保护、输出与续航各有用途；也可以用控制争取速攻。';modal('这次怎么选猫？',`<p class="small">本关重点</p><h3>${need}</h3><p class="note">${idea}</p>${hasControl&&hasHunter?'<p class="green small">已形成配合：控制敌人 → 追风伙伴抓住破绽。</p>':''}<div class="coach-team">${members.map(c=>`<div>${sprite(c)}<strong>${esc(c.name)}</strong>${buildBrief(c)}<p class="small">${catJob(c)[3]}</p></div>`).join('')}</div><p class="small">相同外观不代表相同打法；先看本领、专长与突变，再比较等级。</p>`,btn('回棋盘换队友','modal-close',{tone:2}),10);}
@@ -505,7 +523,30 @@ function inheritanceSummary(a,b) {
     <p class="inherit-attributes">${[[1,'生命',p.hp],[0,'攻击',p.atk],[4,'速度',p.speed]].map(([i,label,range])=>
       `<span>${icon(i)}${label} ${range.join('–')}</span>`).join('')}</p></section>`;
 }
-function preview(){const [a,b]=parents.map(cat);if(!a||!b){page='breed';return breeding();}if(G.rarityInfo(state,a,b).pity)rareDew=0;const plan=G.breedPlan(state,{focus:breedFocus,mutation:mutationPlan,dew:rareDew,rareMode}),enough=state.coins>=plan.cost&&state.geneNotes>=plan.notesCost&&state.starDew>=rareDew;return header('遗传手记','看看可能，再迎接小猫')+`<div class="skin scroll-shell preview-sheet">${skin()}<main class="scroll-content"><p class="small center nursery-steps">选择双亲 › <b>遗传预览</b> › 迎接新猫</p><p class="breeding-pair">${esc(a.name)} × ${esc(b.name)}</p>${planControls(a,b)}${mutationComparison()}${mutationControls()}${rareControls(a,b)}${!enough?panel(`<p class="red">${state.coins<plan.cost?'铜钱不足，去试炼获得奖励。':state.geneNotes<plan.notesCost?'灵感不足，请取消指定突变或继续积攒。':'星露不足，请减少本次投入。'}</p>${state.coins<plan.cost?btn('去试炼','team',{tone:2,cls:'compact'}):''}`,'panel-tight'):''}</main></div>`+nurseryFooter(btn('开始繁育 '+resource(0,plan.cost)+(plan.notesCost?resource(1,plan.notesCost):'')+(rareDew?resource(3,rareDew):'')+(useBlessing&&mutationPlan===null?resource(4,1):''),'breed-start',{icon:9,disabled:!enough})+`<p class="small center">确认后扣除所示资源 · 双亲保留</p>`)+nav('breed');}
+function preview() {
+  const [a,b]=parents.map(cat);
+  if(!a||!b){page='breed';return breeding();}
+  if(G.rarityInfo(state,a,b).pity)rareDew=0;
+  const rare=G.rarityInfo(state,a,b,rareDew);
+  const plan=G.breedPlan(state,{focus:breedFocus,mutation:mutationPlan,dew:rareDew,rareMode});
+  const leaf=!!(useBlessing&&state.blessings>0&&mutationPlan===null);
+  const cost=[[0,plan.cost],[1,plan.notesCost],[3,rareDew],[4,Number(leaf)]].filter(([,count])=>count>0);
+  const missing=cost.find(([i,count])=>count>[state.coins,state.geneNotes,0,state.starDew,state.blessings][i]);
+  const pair=[a,b].map(c=>`<span class="preview-cat">${sprite(c)}<b>${esc(c.name)}</b></span>`).join('<span class="pair-cross" aria-hidden="true">×</span>');
+  const content=`<main class="scroll-content">
+    <div class="preview-pair" aria-label="双亲">${pair}</div>
+    ${birthOdds(ordinaryOutcome(),rare)}
+    ${mutationControls()}
+    ${rareControls(rare)}
+    ${planControls(a,b)}
+    ${missing?.[0]===0?btn('去试炼攒铜钱','team',{tone:2,cls:'compact'}):''}
+  </main>`;
+  const total=`<p class="preview-cost${missing?' red':''}">${missing?resourceNames[missing[0]]+'不足':'本次花费'}
+    ${cost.map(([i,count])=>`<span>${resourceIcon(i)}${count} ${resourceNames[i]}</span>`).join('')}</p>`;
+  return header('繁育预览','')+`<div class="skin scroll-shell preview-sheet">${skin()}${content}</div>`+
+    nurseryFooter(total+btn('开始繁育','breed-start',{icon:9,tone:1,disabled:!!missing}))+nav('breed');
+}
+
 function birthing(){return header('育猫小屋','新的相逢正在发生')+nurseryAmbience()+`<div class="nursery-birth-scene">${welcomeArt(0,'basket-wreath')}<button data-action="open-basket" class="nursery-basket" aria-label="打开猫篮">${icon(9)}</button>${welcomeArt(3,'basket-spark')}</div>`+panel('<h2>听，小窝里有动静了……</h2><p>双亲已经回到院子。轻点猫篮，迎接小家伙。</p>','nursery-birth-caption')+nav('breed');}
 function reveal(){const c=cat(state.pendingReveal);if(!c){page='home';return home();}const [a,b]=c.parents.map(cat);return shell('新猫来啦','四 · 你好，小家伙',`<div class="birth-title">${icon(c.mutation===null?1:15)}<h2>${G.rare(c)?'超稀有！'+G.RARES[c.rareGene].name:c.mutation===null?'一只独一无二的小猫':`发现${G.MUTATIONS[c.mutation].name}！`}</h2></div><div class="reveal-portrait"><div class="seal">${skin('panel',3)}</div>${sprite(c)}</div><label class="name-edit skin" aria-label="给小猫起名字">${skin('button',2)}<input id="cat-name" aria-label="小猫名字" maxlength="10" value="${esc(c.name)}"></label><p class="sub center">点名字就能改 · 第 ${c.gen} 代</p>${stats(c)}${birthHighlights(c)}${rareNote(c)}${c.birthReport?panel(`<h3>${c.birthReport.newLook?'图鉴点亮一页！':'新的伙伴，新的可能'}</h3><p class="small">${resource(1,'+'+c.birthReport.notesEarned)} · 当前 ${resource(1,state.geneNotes)}${!c.birthReport.newLook?'。同模样也会积累灵感，可以指定下一次突变。':''}</p>`,'panel-tight'):''}${panel(`<h3 class="flex">${skillIcon(c.skill)}继承本领：${G.SKILLS[c.skill].name}</h3><p class="note">${G.SKILLS[c.skill].desc}</p>`,'panel-tight')}<p class="reveal-text">${G.COLORS[c.color]}毛色来自${esc(c.color===a.color?a.name:b.name)}<br>${G.PATTERNS[c.pattern]}、${G.EARS[c.ears]}，都是家族的印记。${c.mutation!==null?`<br><b class="red">${G.MUTATIONS[c.mutation].name}：${G.MUTATIONS[c.mutation].desc}</b>`:''}</p>${btn('加入队伍 · 试试身手','reveal-team',{icon:10,cls:'sticky-action'})}${btn('先回猫屋','reveal-home',{tone:2,cls:'compact'})}`,'breed');}
 function team(){G.syncDeployment(state);const max=Math.min(10,(state.cleared.at(-1)||0)+1);stage=Math.min(stage,max);if(battleMode==='trail'&&!state.cleared.includes(10))battleMode='story';return shell('战前布阵','摆好位置，再自动出战',`<h2 class="team-mode-title">这次去哪里？</h2><div class="inline-actions">${btn('山林试炼','battle-mode',{id:'story',tone:battleMode==='story'?1:2,cls:'compact'})}${btn('无尽远行','battle-mode',{id:'trail',tone:battleMode==='trail'?1:2,cls:'compact',disabled:!state.cleared.includes(10)})}${btn('小队挑战','challenges',{tone:battleMode==='challenge'?1:2,cls:'compact'})}</div>${battleMode==='story'?`<div class="skin stage-selector">${skin('button',2)}${btn('','stage-prev',{tone:2,icon:13,disabled:stage===1,label:'上一关'})}<div class="stage-name"><h3>第 ${stage} 关 · ${G.STAGES[stage-1]}</h3><p class="small">${state.cleared.includes(stage)?'重游':'首次通关'} ${resource(0,state.cleared.includes(stage)?0:150+stage*10)} + 新星奖励</p></div>${btn('','stage-next',{tone:2,icon:13,cls:'next',disabled:stage===max,label:'下一关'})}</div>`:''}${formationPreview()}${scouting()}<h3 class="choice-header">小队 · 已选 ${state.team.length}/3</h3>${collection('team-select')}${state.cats.length<3?'<p class="small">出战需要三位伙伴，育猫小屋可迎来新成员。</p>':''}<p class="level-cue">随时一键跳过，按真实战况结算经验与奖励。通关第 10 关开启远行。</p>`,'team');}
@@ -651,7 +692,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  case 'mutation-picker':mutationPicker();break;
  case 'mutation-preview':mutationDetail(Number(id),true);break;
  case 'mutation-detail':mutationDetail(Number(id));break;
- case 'mutation-plan':{const next=id===''?null:Number(id);if(next!==null&&(!G.MUTATIONS[next]||next>=3&&!state.mutationSeen.includes(next)||state.geneNotes<6)){toast('先发现这类突变，并攒够 6 点灵感。');break;}mutationPlan=next;if(mutationPlan!==null)useBlessing=false;closeModal();render();break;}
+ case 'mutation-plan':{const next=id===''?null:Number(id);if(next!==null&&(!G.MUTATIONS[next]||next>=3&&!state.mutationSeen.includes(next)||state.geneNotes<6)){toast('先发现这类突变，并攒够 6 点灵感。');break;}mutationPlan=next;useBlessing=false;closeModal();render();break;}
  case 'swap-parents':parents.reverse();if(!rememberParents())return;render();break;
  case 'battle-mode':if(id==='trail'&&!state.cleared.includes(10))break;battleMode=id;render();break;
  case 'map-in':zoomMap(1.2);break;case 'map-out':zoomMap(1/1.2);break;case 'map-fit':fitMap();break;case 'blessing':mutationPlan=null;useBlessing=!useBlessing;render();break;case 'wish-claim':{const reward=G.claimWish(state,id);if(reward){if(!save())return;render();toast('心愿完成！ '+resource(0,'+'+reward.coins)+(reward.leaves?' '+resource(4,'+'+reward.leaves):''),true);}break;}case 'battle-skip':skipBattle();break;case 'help':help();break;case 'modal-close':case 'modal-back':modalBack();break;case 'overlay-home':dismissSheet();break;
@@ -703,5 +744,5 @@ const assets=['v141-skill-icons','v141-range-tiles','v12-mutants-a','v12-mutants
 let imagesReady=0;const loadedImage=ok=>{imagesReady++;const label=document.querySelector('#loading p');if(label)label.textContent='小院正在醒来…… '+Math.round(imagesReady/assets.length*100)+'%';return ok;};
 Promise.all(assets.map(n=>new Promise(resolve=>{const i=new Image();i.onload=()=>i.decode().catch(()=>{}).then(()=>resolve(loadedImage(true)));i.onerror=()=>resolve(loadedImage(false));i.src=ASSET(n);}))).then(results=>{render();$('#loading').remove();if(results.some(x=>!x))modal('有几张画还没送到','网络有些慢，部分画面还未加载完成。请重新载入。',btn('重新载入','reload'));if(state.pendingWelcomes.length||state.pendingGrowth.length)showNextCelebration();if(loadNotice)toast(loadNotice);});
 document.addEventListener('click',e=>{if(e.target.closest('[data-action="reload"]'))location.reload();const el=e.target.closest('summary,button');if(el&&!el.disabled&&!el.closest('[data-action]')&&!e.defaultPrevented)MeowSound.play('tap');});
-window.MeowDemo={build:'15.2-birth-traits',getWelcomeShowing:()=>welcomeShowing,getGrowthShowing:()=>levelShowing,getBattlePhase:()=>battleCue?.phase||null,getCamera:()=>({...camera}),getVillageScene:()=>({time:villageTime,tree:{...TREE},gate:VillageMotion.gate,cats:[...document.querySelectorAll('.village-cat')].map(el=>({id:Number(el.dataset.id),x:parseFloat(el.style.left),y:parseFloat(el.style.top),depth:Number(el.style.zIndex),moving:el.dataset.moving,frame:Number(el.dataset.frame)}))}),getState:()=>JSON.parse(JSON.stringify(state)),getPage:()=>page,getBattle:()=>battle?JSON.parse(JSON.stringify(battle)):null};
+window.MeowDemo={build:'15.3-breeding-preview',getWelcomeShowing:()=>welcomeShowing,getGrowthShowing:()=>levelShowing,getBattlePhase:()=>battleCue?.phase||null,getCamera:()=>({...camera}),getVillageScene:()=>({time:villageTime,tree:{...TREE},gate:VillageMotion.gate,cats:[...document.querySelectorAll('.village-cat')].map(el=>({id:Number(el.dataset.id),x:parseFloat(el.style.left),y:parseFloat(el.style.top),depth:Number(el.style.zIndex),moving:el.dataset.moving,frame:Number(el.dataset.frame)}))}),getState:()=>JSON.parse(JSON.stringify(state)),getPage:()=>page,getBattle:()=>battle?JSON.parse(JSON.stringify(battle)):null};
 })();

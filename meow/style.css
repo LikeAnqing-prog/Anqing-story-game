@@ -248,3 +248,47 @@
 .rare-plan h4 { margin:12px 0 4px; text-align:center; }
 .dew-balance { margin:7px 0 3px; }
 .mutation-plan .inline-actions>.btn { white-space:normal; padding-inline:5px; }
+
+/* Keep the main decision and its cost in view on a portrait screen. */
+#game.nursery-preview .preview-sheet {
+  top:calc(max(12px, env(safe-area-inset-top)) + 72px);
+  bottom:calc(max(9px, env(safe-area-inset-bottom)) + 162px);
+  width:min(560px, calc(100% - 14px));
+}
+#game.nursery-preview .preview-sheet>.scroll-content { inset:10px 12px; padding:2px 1px 12px; }
+#game.nursery-preview .nursery-footer { bottom:calc(max(9px, env(safe-area-inset-bottom)) + 77px); }
+.nursery-preview .headline h1 { white-space:nowrap; }
+.preview-pair { display:flex; align-items:center; justify-content:center; gap:12px; margin:0 0 6px; }
+.preview-cat { display:flex; align-items:center; gap:3px; min-width:0; font-size:15px; }
+.preview-cat>.sprite { width:37px; flex:none; }
+.preview-cat>b { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pair-cross { font-size:16px; color:#795b3c; }
+.birth-odds-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+.birth-outcome { border-radius:7px; padding:8px 3px; text-align:center; background:#e2e8ce; color:#30492d; }
+.birth-outcome.rare { background:#e8deef; color:#593b61; }
+.birth-outcome h3 { font-size:15px; line-height:1.3; }
+.birth-outcome :is(.icon,.resource-icon) { width:17px; height:17px; }
+.birth-outcome strong { display:block; margin:2px 0; font-size:35px; font-weight:bold; line-height:1.08; font-variant-numeric:tabular-nums; }
+.birth-outcome p,.birth-outcome small { font-size:12px; }
+.birth-outcome small { display:block; margin-top:3px; }
+.birth-hint { color:#4c4231; font-size:13px; line-height:1.5; margin:4px 0; }
+.birth-controls { margin:9px 0 0; padding:9px 0 2px; border-top:1px solid #8e79584a; }
+.birth-control-heading { display:flex; align-items:center; justify-content:space-between; gap:4px; }
+.birth-control-heading h3 { font-size:16px; }
+.birth-control-heading :is(.icon,.resource-icon) { width:19px; height:19px; }
+.birth-control-heading small { font-size:12px; white-space:nowrap; }
+.birth-choices { display:grid; gap:4px; margin-top:5px; }
+.birth-choices.two { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.birth-choices.three { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.birth-choices.four { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.birth-choices .btn { font-size:14px; min-height:44px; padding:4px 3px; white-space:normal; }
+.rare-preference { margin-top:7px; }
+.rare-preference>p:first-child { font-size:13px; }
+.birth-minor-actions { display:flex; gap:4px; }
+.birth-minor-actions .btn { min-width:0; font-size:12px; padding:4px 3px; }
+.preview-cost { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:0 7px; padding:2px 4px; background:#f4e8d1; font-size:12px; text-align:center; }
+.preview-cost span { display:inline-flex; align-items:center; gap:2px; white-space:nowrap; }
+.nursery-preview .preview-cost :is(.resource-icon,.icon) { width:15px; height:15px; }
+.nursery-preview .nursery-footer>.btn { min-height:48px; }
+
+.odds-source { color:#593b61; font-variant-numeric:tabular-nums; }
