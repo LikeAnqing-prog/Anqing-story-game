@@ -45,7 +45,67 @@ function rangeDetail(key,kind='attack'){const c=String(key).startsWith('unit~')?
 function effectFlow(items,cls=''){return `<div class="effect-flow ${cls}">${items.map(([i,label],n)=>(n?visualIcon(15,'effect-arrow'):'')+`<span class="effect-step">${Array.isArray(i)?'<span class="effect-pair">'+i.map(x=>visualIcon(x)).join('')+'</span>':visualIcon(i)}<span>${label}</span></span>`).join('')}</div>`;}
 function skillEffect(c){const flows=[[[0,'挥爪两次'],[14,'每次 65% 伤害']],[[12,'虚弱伙伴'],[1,'获得护盾']],[[12,'虚弱伙伴'],[2,'恢复生命']],[[14,'攻击命中'],[3,'毒伤持续两次']],[[4,'速度 +5'],[0,'25% 追加攻击']],[[14,'受到直接攻击'],[5,'反击 45%']],[[6,'吸引敌人'],[1,'给自己添盾']],[[14,'半伤攻击'],[7,'冻结一次行动']],[[8,'清除异常'],[2,'治疗与回春']],[[9,'鼓舞全队'],[14,'后两次攻击 +25%']],[[10,'推远一格'],[14,'受阻额外 +8']],[[11,'命中后定身'],[13,'两次不能移动']]];return effectFlow(flows[c.skill]||flows[0],'skill-effect');}
 function lessonEffect(path,level){const flows={guardian:{3:[[12,'另一位伙伴'],[1,'开场 +12 盾']],6:[[2,'伙伴生命 ≤40%'],[1,'救援 +30 盾'],[6,'吸引敌人']],10:[[[12,12],'两位不同伙伴'],[1,'每次 +45 盾']]},hunter:{3:[[[7,11],'目标已冻结/定身'],[14,'直伤 +20%']],6:[[14,'击败目标'],[4,'再行动一次']],10:[[14,'击败目标'],[4,'每场最多追击两次']]},healer:{3:[[2,'直接治疗'],[8,'清除中毒']],6:[[2,'溢出治疗'],[1,'转盾，上限 20']],10:[[2,'直接治疗'],[[2,2],'另一位恢复 40%']]}};return effectFlow(flows[path]?.[level]||[],'lesson-effect');}
-function training(){const c=cat(trainingId)||cat(state.team[0])||state.cats[0];trainingId=c.id;return shell('猫咪学堂','每只猫都有自己的拿手好戏',`<h2>让${esc(c.name)}试试新本领</h2><div class="family-picker">${state.cats.map(x=>btn(esc(x.name),'training-cat',{id:x.id,tone:x.id===c.id?1:2,cls:'compact'})).join('')}</div>${panel(`<div class="training-current">${sprite(c)}<div><h3>${skillIcon(c.skill)}${G.SKILLS[c.skill].name}</h3><p class="small">${G.SKILLS[c.skill].desc}</p></div></div><p class="note">${c.lessonUsed?'已学本领随时免费切换；学习新本领消耗 '+resource(1,2):'这只猫第一次研习免费，马上换一种玩法。'}</p><p class="small">每次携带一种本领；当前本领可遗传给后代。稀有天赋额外保留。</p>`,'training-summary')}<div class="skill-library">${G.SKILLS.map((k,i)=>{const known=c.learnedSkills.includes(i),current=c.skill===i,cost=known||!c.lessonUsed?0:2;return panel(`<div class="flex between"><h3>${skillIcon(i)}${k.name}</h3><span class="skill-type">${k.type}</span></div>${skillEffect({skill:i})}<details class="skill-explanation"><summary>完整说明</summary><p class="small">${k.desc}</p></details>${btn(current?'正在使用':known?'切换本领':cost?'研习 '+resource(1,cost):'免费研习','learn-skill',{id:i,tone:current?1:2,cls:'compact',disabled:current||state.geneNotes<cost})}`,'skill-lesson');}).join('')}</div>${btn('带着本领去出战','team',{icon:10})}`,'academy');}
+const lessonGroups = [
+  {label:'攻击', skills:[0,3,4,5]},
+  {label:'守护与恢复', skills:[1,2,6,8,9]},
+  {label:'控制', skills:[7,10,11]}
+];
+
+function lessonCost(c, skill) {
+  return c.learnedSkills.includes(skill) || !c.lessonUsed ? 0 : 2;
+}
+
+function lessonPreview(skill) {
+  const c = cat(trainingId), k = G.SKILLS[skill];
+  if (!c || !k) return;
+  const known = c.learnedSkills.includes(skill), equipped = c.skill === skill;
+  const cost = lessonCost(c, skill), missing = Math.max(0, cost - state.geneNotes);
+  const action = equipped ? '已携带' : missing ? '还差 '+missing+' 灵感' :
+    known ? '免费换上' : cost ? '研习并换上 '+resource(1,cost) : '免费研习并换上';
+  modal(k.name, skillEffect({skill}) + `<p>${k.desc}</p><p class="small">${esc(c.name)}当前携带「${G.SKILLS[c.skill].name}」</p>` +
+    (cost ? '<p>现有 '+resource(1,state.geneNotes)+'</p>' : ''),
+    btn(action,'learn-skill',{id:skill,tone:1,disabled:equipped||missing>0}));
+}
+
+function training() {
+  const c = cat(trainingId) || cat(state.team[0]) || state.cats[0];
+  trainingId = c.id;
+  const header = `<div class="training-current">${sprite(c)}<div><h2>${esc(c.name)} <small>Lv.${G.levelInfo(c).level}</small></h2>
+    <p>${skillIcon(c.skill)}携带 · ${G.SKILLS[c.skill].name}</p>${btn('换一只','school-picker',{tone:2,cls:'compact'})}</div></div>`;
+  const groups = lessonGroups.map(({label,skills}) => `<section><h3>${label}</h3><div class="lesson-palette">${skills.map(i => {
+    const active = i === c.skill, known = c.learnedSkills.includes(i);
+    const status = active ? '携带中' : known ? '已学会' : lessonCost(c,i) ? '待研习' : '可免费学';
+    return `<button class="skin lesson-choice" data-action="lesson-peek" data-id="${i}">${skin('button',active?1:2)}${skillIcon(i)}<strong>${G.SKILLS[i].name}</strong><small>${status}</small></button>`;
+  }).join('')}</div></section>`).join('');
+  return shell('猫咪学堂','选择本领',header + '<div class="school-lessons">'+groups+'</div>' +
+    btn('带'+esc(c.name)+'去历练','growth-trial',{id:c.id,icon:10}), 'academy');
+}
+
+function schoolPicker() {
+  modal('为哪只猫调整本领？', '<div class="growth-picker-grid">'+state.cats.map(c =>
+    `<button class="skin growth-picker-cat" data-action="training-cat" data-id="${c.id}">${skin()}${sprite(c)}<strong>${esc(c.name)} Lv.${G.levelInfo(c).level}</strong><small>${G.SKILLS[c.skill].name}</small></button>`
+  ).join('')+'</div>',btn('返回学堂','modal-back',{tone:2}));
+}
+
+function startCatTrial(c, outgoingId) {
+  if (!c) return;
+  if (!state.team.includes(c.id)) {
+    if (state.team.length < 3) state.team.push(c.id);
+    else if (outgoingId && state.team.includes(outgoingId)) G.replaceTeamCat(state,outgoingId,c.id);
+    else {
+      modal('让谁休息一场？', '<p>'+esc(c.name)+'将接替所选伙伴的站位。</p><div class="growth-picker-grid">'+state.team.map(id => {
+        const member = cat(id);
+        return `<button class="skin growth-picker-cat" data-action="trial-replace" data-id="${c.id}:${id}">${skin()}${sprite(member)}<strong>${esc(member.name)}</strong><small>${G.SKILLS[member.skill].name} · Lv.${G.levelInfo(member).level}</small></button>`;
+      }).join('')+'</div>',btn('保留当前阵容','modal-back',{tone:2}));
+      return;
+    }
+  }
+  stage=Array.from({length:Math.min(10,state.cleared.length+1)},(_,i)=>i+1).find(n=>!c.trialWins.includes(n))||1;
+  battleMode='story';
+  if(!save())return;
+  closeModal(false);
+  go('team');
+}
 let levelTimer=null,levelShowing=null,growthSession=null,rewardPending=null;
 function syncGrowthReminder(){document.querySelector('.growth-reminder')?.remove();if(!levelShowing&&!welcomeShowing&&(state.pendingGrowth.length||state.pendingWelcomes.length)){const el=document.createElement('div');el.className='growth-reminder';el.innerHTML=btn(state.pendingWelcomes.length?'新伙伴 '+state.pendingWelcomes.length:'成长 '+state.pendingGrowth.length,'growth-resume',{tone:1,cls:'compact',icon:state.pendingWelcomes.length?8:15,label:state.pendingWelcomes.length?'迎接新伙伴':'继续观看 '+state.pendingGrowth.length+' 只猫的升级'});screen.append(el);}}
 function showGrowth(){clearTimeout(levelTimer);const g=state.pendingGrowth[0];if(!g){levelShowing=null;growthSession=null;showNextCelebration();return;}if(!growthSession)growthSession={total:state.pendingGrowth.length,done:0};levelShowing=g.key;const c=cat(g.id);modal(esc(c.name)+'长大啦！',`<div class="growth-scene" data-growth-cat="${c.id}">${skillArt(6,'growth-halo')}${sprite(c,'growing-cat')}${skillArt(7,'growth-emblem')}</div><p class="growth-level"><span>Lv.${g.from}</span><b>→</b><strong>Lv.${g.to}</strong></p><div class="growth-stats">${[['hp','生命',1],['atk','攻击',0],['speed','速度',4]].map(([key,label,idx])=>`<div>${icon(idx)}<span>${label}</span><b>${g.before[key]} → ${g.after[key]}</b><em>+${g.after[key]-g.before[key]}</em></div>`).join('')}</div><p class="small center green">${[3,6,10].filter(n=>g.from<n&&g.to>=n).map(n=>({3:'可选专长，学第一项被动',6:'可挑战突破，解锁第二项能力',10:'可完成结业，学会第三项能力'})[n]).join(' · ')}</p><p class="small center">第 ${growthSession.done+1} / ${growthSession.total} 只 · 成长已保存</p><p class="small center">轻点空白可暂时收起，稍后继续观看。</p>`,btn(state.pendingGrowth.length>1?'下一只小猫':'收下这份成长','growth-next',{tone:1})+btn('安排它的养成','growth-open',{id:c.id,tone:2,cls:'compact'}),15);modalRoot.querySelector('.modal').classList.add('growth-modal');syncGrowthReminder();const key=g.key;levelTimer=setTimeout(()=>{if(levelShowing===key)completeGrowth();},3600);}
@@ -61,7 +121,7 @@ let deployCatId=null,deployInspect=null,deployRange='attack';
 function deploymentBattle(){const places=G.deployment(state),rule=G.encounter(state,stage,battleMode);return {blocks:[{x:2,y:2}],units:[...places.map(p=>({...G.trained(cat(p.id)),...p,life:1,side:0,uid:'a'+p.id})),...rule.skills.map((skill,i)=>({id:-i-1,uid:'e'+i,side:1,name:['竹团','灰灰','阿斑'][i],skill,color:(i+stage)%3,pattern:i,ears:i%2,mutation:null,rareGene:null,x:i*2,y:0,life:1}))]};}
 function formationPreview(){G.syncDeployment(state);if(!state.team.includes(deployCatId))deployCatId=state.team[0]||null;const b=deploymentBattle();if(!b.units.some(u=>u.uid===deployInspect))deployInspect='a'+deployCatId;const u=b.units.find(u=>u.uid===deployInspect),profile=u?G.combatProfile(u):null,cells=u?(deployRange==='attack'?G.attackCells(b,u):G.moveCells(b,u)):[],marked=new Set(cells.map(p=>p.x+','+p.y));return `<section class="deployment-studio"><div class="deployment-heading"><h3>你来摆阵，小猫自动出战</h3>${btn('重摆','deploy-reset',{tone:2,cls:'compact'})}</div><p class="small">猫牌换队友 · 棋盘点猫看范围，拖猫换站位。</p><div class="deployment-cats" aria-label="点击猫牌更换出战伙伴">${state.team.map(id=>{const c=cat(id);return `<button class="skin deploy-pick" data-action="deploy-select" data-id="${id}" aria-pressed="${deployInspect==='a'+id}">${skin('button',deployInspect==='a'+id?1:2)}${sprite(c)}<span>${esc(c.name)}</span><small>点击换猫</small></button>`;}).join('')}</div><div class="deployment-board-tools">${profile?`<div class="deployment-inspector" aria-live="polite"><strong>${u.side?'敌方':'我方'} · ${esc(u.name)} · ${profile.name}</strong><p>${deployRange==='attack'?'攻击：'+profile.attack:'移动：每次最多 '+profile.move+' 格'}</p></div>`:''}<div class="deployment-range-tabs">${[['attack','看攻击格'],['move','看移动格']].map(([id,label])=>btn(label,'deploy-range',{id,tone:deployRange===id?1:2,cls:'compact'})).join('')}</div></div><div class="deployment-board" role="group" aria-label="五乘五布阵棋盘，上方为敌人，下方两排可布阵">${Array.from({length:25},(_,i)=>{const x=i%5,y=Math.floor(i/5),c=b.units.find(u=>u.x===x&&u.y===y),rock=x===2&&y===2,selected=c?.uid===deployInspect;return `<button class="deploy-cell ${y>=3?'deploy-zone':''} ${marked.has(x+','+y)?'range-'+deployRange:''} ${selected?'deploy-selected':''}" data-action="deploy-cell" data-id="${x}:${y}" ${c?.side===0?'data-cat-id="'+c.id+'"':''} aria-label="第${y+1}行第${x+1}列，${rock?'岩石不可站立':c?(c.side?'敌方':'我方')+c.name:y>=3?'可放置':'不可布阵'}">${tile(0)}${rock?tile(1):''}${selected?tile(2,'deploy-ring'):''}${marked.has(x+','+y)?'<span class="range-mark">'+(deployRange==='attack'?'爪':'步')+'</span>':''}${c?sprite(c)+`<span class="deploy-label ${c.side?'red':'green'}">${teamFlag(c.side)}${c.side?'敌':'我'}·${esc(c.name)}</span>`:y>=3?'<span class="deploy-empty">＋</span>':''}</button>`;}).join('')}</div><p class="small deployment-note">${deployRange==='attack'?'爪字格＝当前站位可攻击的格子，不是一次群攻；辅助另按说明作用。':'步字格＝本次能走到的空格，不能穿过猫或岩石。'}每只猫占一格，开战后自动寻路。</p>${profile?`<details class="deployment-skill-detail" data-fold="deploy-skill"><summary>${profile.name} · 技能说明</summary><p class="small">${profile.detail}${profile.support?' '+profile.support:''}</p></details>`:''}<p class="small">${state.team.length?'前排：'+esc(cat(state.team[0]).name)+' · 最靠前优先，同排靠中间优先，获得基础 20 护盾。':''}</p></section>`;}
 function deploymentPicker(oldId,filter='reserve'){const old=cat(oldId);if(!old||!state.team.includes(oldId))return;const list=state.cats.filter(c=>filter==='all'||filter==='reserve'&&!state.team.includes(c.id)||filter==='favorite'&&c.favorite||filter==='attack'&&![1,2,6,8,9].includes(c.skill)||filter==='support'&&[1,2,6,8,9].includes(c.skill));list.sort((a,b)=>Number(state.team.includes(a.id))-Number(state.team.includes(b.id))||G.levelInfo(b).level-G.levelInfo(a).level||b.id-a.id);
- modal('替换'+esc(old.name),`<p class="small center">选择新伙伴接替它的位置，其他猫的站位不变。</p><div class="deploy-picker-filters">${[['reserve','候补'],['all','全部'],['favorite','收藏'],['attack','输出'],['support','辅助']].map(([key,name])=>btn(name,'deploy-picker-filter',{id:oldId+':'+key,tone:filter===key?1:2,cls:'compact'})).join('')}</div><div class="deploy-picker-list">${list.map(c=>{const inTeam=state.team.includes(c.id);return `<button class="skin deploy-replacement ${inTeam?'on-team':''}" data-action="deploy-replace" data-id="${oldId}:${c.id}" ${inTeam?'disabled':''}>${skin()}${sprite(c)}<strong>${esc(c.name)}</strong><span>Lv.${G.levelInfo(c).level} · ${catJob(c)[0]}</span><span class="small">${c.growthPath?pathName(c)+' · '+G.Growth.lessons(c).filter(x=>x.unlocked).at(-1).name:catJob(c)[2]}</span><small>${c.id===oldId?'当前伙伴':inTeam?'已在其他位置':'点选接替'}</small></button>`;}).join('')||'<p class="empty-message">这里还没有可选伙伴。<br>试试其他筛选，或繁育一只新猫。</p>'}</div>`,btn('只调整它的站位','deploy-keep',{id:oldId,tone:2}));modalRoot.querySelector('.modal').classList.add('deploy-picker-modal');}
+ modal('替换'+esc(old.name),`<p class="small center">选择新伙伴接替它的位置，其他猫的站位不变。</p><div class="deploy-picker-filters">${[['reserve','候补'],['all','全部'],['favorite','收藏'],['attack','输出'],['support','辅助']].map(([key,name])=>btn(name,'deploy-picker-filter',{id:oldId+':'+key,tone:filter===key?1:2,cls:'compact'})).join('')}</div><div class="deploy-picker-list">${list.map(c=>{const inTeam=state.team.includes(c.id);return `<button class="skin deploy-replacement ${inTeam?'on-team':''}" data-action="deploy-replace" data-id="${oldId}:${c.id}" ${inTeam?'disabled':''}>${skin()}${sprite(c)}<strong>${esc(c.name)}</strong><span>Lv.${G.levelInfo(c).level} · ${catJob(c)[0]}</span><span class="small">${c.growthPath?pathName(c)+' · '+G.Growth.lessons(c).filter(x=>x.unlocked).at(-1).name:catJob(c)[2]}</span><small>${c.id===oldId?'当前伙伴':inTeam?'已在其他位置':'点选接替'}</small></button>`;}).join('')||'<p class="empty-message">这里还没有可选伙伴。<br>试试其他筛选，或繁育一只新猫。</p>'}</div>`,btn('调整'+esc(old.name)+'的本领','training-open',{id:oldId,tone:2})+btn('只调整它的站位','deploy-keep',{id:oldId,tone:2}));modalRoot.querySelector('.modal').classList.add('deploy-picker-modal');}
 function placeDeployment(id,x,y){G.placeCat(state,id,x,y);deployCatId=id;deployInspect='a'+id;if(!save())return;render();}
 
 function nurseryParents(){return `<div class="nursery-pair-scene">${[0,1].map(i=>`<button class="nursery-parent ${parentSlot===i?'choosing':''}" data-action="nursery-slot" data-id="${i}" aria-label="更换双亲${i?'乙':'甲'}">${parents[i]?sprite(cat(parents[i])):icon(9)}<span class="skin nursery-name">${skin('button',2)}<span>${i?'乙':'甲'} · ${parents[i]?esc(cat(parents[i]).name):'选择小猫'}</span></span></button>`).join('')}${welcomeArt(3,'nursery-love')}</div>`;}
@@ -232,7 +292,7 @@ function mutationControls(){const selected=mutationPlan!==null,m=selected?G.MUTA
 
 function comboDetail(id){const [color,pattern,ears]=id.split('-').map(Number),c={color,pattern,ears,mutation:null},seen=state.seen.includes(id);modal(seen?G.lookName(id):'尚未发现的模样',`${discoverySprite(c,seen)}<p class="center">${seen?'已经点亮这页图鉴':'遇见后，才会揭晓它真正的模样。'}</p><p class="note">通过繁育或迎接新伙伴，发现更多毛色、花纹与耳型组合。</p>`,btn('去繁育','breed',{icon:9})+btn('关闭','modal-close',{tone:2}),11);}
 function squadCoach(){const members=state.team.map(cat),rule=G.encounter(state,stage,battleMode),poison=rule.skills.includes(3),control=rule.skills.some(i=>[7,11].includes(i)),counter=rule.skills.includes(5),hasCleanse=members.some(c=>c.skill===8||c.skill===2&&c.growthPath==='healer'),hasControl=members.some(c=>[7,11].includes(c.skill)),hasHunter=members.some(c=>c.growthPath==='hunter'),need=poison?'敌方会持续施毒':control?'敌方会限制行动或移动':counter?'敌方受击会反击':rule.skills.includes(2)?'敌方有治疗，要尽早减员':'先让输出有时间发挥';const idea=poison?(hasCleanse?'队伍已有解毒手段，留意治疗猫能否及时行动。':'可换上春风，或让治愈猫学习妙手的清露解毒。'):control?'春风可以解控；远程猫被定身后仍能攻击范围内目标。':counter?'多次直伤也会多次触发反击；毒爪消耗、添盾与治疗能减少损失。':rule.skills.includes(2)?'试试集中火力，或用冰铃阻止一次治疗行动。':'保护、输出与续航各有用途；也可以用控制争取速攻。';modal('这次怎么选猫？',`<p class="small">本关重点</p><h3>${need}</h3><p class="note">${idea}</p>${hasControl&&hasHunter?'<p class="green small">已形成配合：控制敌人 → 追风伙伴抓住破绽。</p>':''}<div class="coach-team">${members.map(c=>`<div>${sprite(c)}<strong>${esc(c.name)}</strong>${buildBrief(c)}<p class="small">${catJob(c)[3]}</p></div>`).join('')}</div><p class="small">相同外观不代表相同打法；先看本领、专长与突变，再比较等级。</p>`,btn('去养成调整本领','academy',{tone:1})+btn('回棋盘换队友','modal-close',{tone:2}),10);}
-function scouting(){if(battleMode==='challenge'){const d=G.Objectives.challenges.find(x=>x.id===challengeId),missing=G.Objectives.challengeSetup(state,challengeId);return panel('<h3>'+d.name+' · '+d.tier+'阶挑战</h3><p class="note">'+d.desc+'</p>'+(missing.length?'<p class="note red">还需调整：'+missing.join('；')+'</p>'+btn('调整前排专长','growth-open',{id:state.team[0]||state.cats[0].id,tone:2,cls:'compact'})+btn('调整携带本领','training-open',{id:state.team[0]||state.cats[0].id,tone:2,cls:'compact'}):'<p class="note green">阵容条件已满足，出发试试！</p>')+'<p class="small">'+(state.objectives.challengeWins.includes(d.id)?'印记已获得，本次是自由练习。':'首次达成奖励 '+goalRewards(d)+' '+resource(2,d.xp))+'</p>','scout-panel');}const rule=G.encounter(state,stage,battleMode),record=state.stageStars[stage]||0;return panel(`<div class="flex between"><h3>${battleMode==='trail'?'远行第 '+rule.floor+' 段':G.STAGES[stage-1]}</h3><b class="red">${battleMode==='trail'?'纪录 '+state.trailBest+' 段':stars(record)}</b></div><h3 class="choice-header">敌情 · ${rule.name}</h3><p class="small">${rule.skills.map(i=>G.SKILLS[i].name).join(' / ')}${rule.shield?' · 入场护盾 '+rule.shield:''}</p><p class="note">${rule.tip}</p><p class="small">${battleMode==='trail'?'胜利获得 '+resource(1,2)+' '+resource(3,1)+' 与铜钱，下一段敌情轮换。':'三星条件：胜利 / 全员存活 / 8 回合内获胜。每颗新星 '+resource(0,'+40')+'，刷新星级再得 '+resource(1,1)+' '+resource(3,1)}</p>`,'scout-panel');}
+function scouting(){if(battleMode==='challenge'){const d=G.Objectives.challenges.find(x=>x.id===challengeId),missing=G.Objectives.challengeSetup(state,challengeId);return panel('<h3>'+d.name+' · '+d.tier+'阶挑战</h3><p class="note">'+d.desc+'</p>'+(missing.length?'<p class="note red">还需调整：'+missing.join('；')+'</p>'+btn('调整前排专长','open-front-path',{id:state.team[0]||state.cats[0].id,tone:2,cls:'compact'})+btn('调整携带本领','training-open',{id:state.team[0]||state.cats[0].id,tone:2,cls:'compact'}):'<p class="note green">阵容条件已满足，出发试试！</p>')+'<p class="small">'+(state.objectives.challengeWins.includes(d.id)?'印记已获得，本次是自由练习。':'首次达成奖励 '+goalRewards(d)+' '+resource(2,d.xp))+'</p>','scout-panel');}const rule=G.encounter(state,stage,battleMode),record=state.stageStars[stage]||0;return panel(`<div class="flex between"><h3>${battleMode==='trail'?'远行第 '+rule.floor+' 段':G.STAGES[stage-1]}</h3><b class="red">${battleMode==='trail'?'纪录 '+state.trailBest+' 段':stars(record)}</b></div><h3 class="choice-header">敌情 · ${rule.name}</h3><p class="small">${rule.skills.map(i=>G.SKILLS[i].name).join(' / ')}${rule.shield?' · 入场护盾 '+rule.shield:''}</p><p class="note">${rule.tip}</p><p class="small">${battleMode==='trail'?'胜利获得 '+resource(1,2)+' '+resource(3,1)+' 与铜钱，下一段敌情轮换。':'三星条件：胜利 / 全员存活 / 8 回合内获胜。每颗新星 '+resource(0,'+40')+'，刷新星级再得 '+resource(1,1)+' '+resource(3,1)}</p>`,'scout-panel');}
 function tactics(){return `<details class="deployment-tactics"><summary>自动配合 · ${G.TACTICS.find(t=>t.id===state.tactic).name}</summary><div class="plan-options">${G.TACTICS.map(t=>btn(t.name,'tactic',{id:t.id,tone:state.tactic===t.id?1:2,cls:'compact'})).join('')}</div><p class="small">${G.TACTICS.find(t=>t.id===state.tactic).desc}</p></details>`;}
 
 function dismissSheet(){if(page==='reveal'){finishReveal('home');return;}if(page==='birthing'){clearTimeout(birthTimer);go('home');return;}go('home');}
@@ -319,12 +379,14 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  case 'lesson-preview':lessonChoice=Number(id);render();screen.querySelector('.lesson-description')?.scrollIntoView({block:'nearest',behavior:'instant'});break;
  case 'growth-picker':growthPicker();break;
  case 'growth-select':if(cat(id)){growthId=Number(id);growthChoice=null;growthTab=['path','breakthrough','master'].includes(growthGoalRoute)?'path':'skills';lessonChoice=null;go('growth');}break;
+ case 'open-front-path':growthGoalRoute='path';growthId=Number(id);growthChoice=null;growthTab='path';lessonChoice=null;go('growth');break;
  case 'growth-open':growthGoalRoute=null;growthId=Number(id);growthChoice=null;growthTab='skills';lessonChoice=null;go('growth');break;
  case 'growth-node':growthNode(Number(id));break;
  case 'growth-preview':if(G.Growth.PATHS.some(p=>p.id===id)){growthChoice={cat:growthId,path:id};lessonChoice=null;render();screen.querySelector('[data-action="growth-preview"][data-id="'+id+'"]')?.focus({preventScroll:true});screen.querySelector('.growth-preview')?.scrollIntoView({block:'nearest',behavior:'instant'});}break;
  case 'growth-path':G.Growth.choose(state,growthId,id);if(!save())return;render();toast('专长已选择，可随时免费重选。');break;
  case 'growth-advance':G.Growth.advance(state,id);if(!save())return;render();toast(cat(id).growthRank===2?'结业啦，已经可以指导新伙伴！':'专长突破，新的战斗能力已学会！');break;
- case 'growth-trial':{const c=cat(id);stage=Array.from({length:Math.min(10,state.cleared.length+1)},(_,i)=>i+1).find(n=>!c.trialWins.includes(n))||1;if(!state.team.includes(c.id)){if(state.team.length<3)state.team.push(c.id);else state.team[2]=c.id;}if(!save())return;go('team');break;}
+ case 'growth-trial':startCatTrial(cat(id));break;
+ case 'trial-replace':{const [next,old]=id.split(':').map(Number);startCatTrial(cat(next),old);break;}
  case 'growth-train':G.train(state,id);if(!save())return;render();showNextCelebration();break;
  case 'study':G.study(state,id);if(!save())return;render();showNextCelebration();break;
  case 'mentor':G.mentor(state,growthId,id);if(!save())return;render();showNextCelebration();break;
@@ -346,8 +408,16 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  case 'back':goBack();break;
  case 'growth-next':completeGrowth();break;
  case 'training-open':trainingId=Number(id);go('training');break;
- case 'training-cat':trainingId=Number(id);render();break;
- case 'learn-skill':{const result=G.learnSkill(state,trainingId,Number(id));if(!save())return;render();if(result.changed)toast(cat(trainingId).name+'学会了'+G.SKILLS[Number(id)].name+'！');break;}
+ case 'school-picker':schoolPicker();break;
+ case 'lesson-peek':lessonPreview(Number(id));break;
+ case 'training-cat':trainingId=Number(id);closeModal(false);render();break;
+ case 'learn-skill':{
+   const result=G.learnSkill(state,trainingId,Number(id));
+   if(!save())return;
+   closeModal(false);render();
+   if(result.changed)toast(cat(trainingId).name+'已携带「'+G.SKILLS[Number(id)].name+'」');
+   break;
+ }
  case 'resource-info':resourceInfo();break;
  case 'rare-dew':if(G.rarityInfo(state,...parents.map(cat)).pity){rareDew=0;break;}rareDew=Math.max(0,Math.min(3,Number(id),state.starDew));render();break;
  case 'craft-dew':G.craftDew(state);if(!save())return;render();toast('凝成一滴星露。');break;
@@ -417,5 +487,5 @@ const assets=['v141-skill-icons','v141-range-tiles','v12-mutants-a','v12-mutants
 let imagesReady=0;const loadedImage=ok=>{imagesReady++;const label=document.querySelector('#loading p');if(label)label.textContent='小院正在醒来…… '+Math.round(imagesReady/assets.length*100)+'%';return ok;};
 Promise.all(assets.map(n=>new Promise(resolve=>{const i=new Image();i.onload=()=>i.decode().catch(()=>{}).then(()=>resolve(loadedImage(true)));i.onerror=()=>resolve(loadedImage(false));i.src=ASSET(n);}))).then(results=>{render();$('#loading').remove();if(results.some(x=>!x))modal('有几张画还没送到','网络有些慢，部分画面还未加载完成。请重新载入。',btn('重新载入','reload'));if(state.pendingWelcomes.length||state.pendingGrowth.length)showNextCelebration();if(loadNotice)toast(loadNotice);});
 document.addEventListener('click',e=>{if(e.target.closest('[data-action="reload"]'))location.reload();const el=e.target.closest('summary,button');if(el&&!el.disabled&&!el.closest('[data-action]')&&!e.defaultPrevented)MeowSound.play('tap');});
-window.MeowDemo={build:'14.2-skills-first',getWelcomeShowing:()=>welcomeShowing,getGrowthShowing:()=>levelShowing,getBattlePhase:()=>battleCue?.phase||null,getCamera:()=>({...camera}),getVillageScene:()=>({time:villageTime,tree:{...TREE},gate:VillageMotion.gate,cats:[...document.querySelectorAll('.village-cat')].map(el=>({id:Number(el.dataset.id),x:parseFloat(el.style.left),y:parseFloat(el.style.top),depth:Number(el.style.zIndex),moving:el.dataset.moving,frame:Number(el.dataset.frame)}))}),getState:()=>JSON.parse(JSON.stringify(state)),getPage:()=>page,getBattle:()=>battle?JSON.parse(JSON.stringify(battle)):null};
+window.MeowDemo={build:'14.3-easy-care',getWelcomeShowing:()=>welcomeShowing,getGrowthShowing:()=>levelShowing,getBattlePhase:()=>battleCue?.phase||null,getCamera:()=>({...camera}),getVillageScene:()=>({time:villageTime,tree:{...TREE},gate:VillageMotion.gate,cats:[...document.querySelectorAll('.village-cat')].map(el=>({id:Number(el.dataset.id),x:parseFloat(el.style.left),y:parseFloat(el.style.top),depth:Number(el.style.zIndex),moving:el.dataset.moving,frame:Number(el.dataset.frame)}))}),getState:()=>JSON.parse(JSON.stringify(state)),getPage:()=>page,getBattle:()=>battle?JSON.parse(JSON.stringify(battle)):null};
 })();
