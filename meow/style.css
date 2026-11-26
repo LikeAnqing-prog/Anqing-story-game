@@ -185,3 +185,5 @@
   #game:is(.team-page,.challenges-page,.book-page) .scroll-content>*{max-width:960px;margin-inline:auto}
   .book-page :is(.rare-catalog,.catalog-grid) .sprite{max-width:140px}
 }
+
+.path-status{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:5px;margin:0 0 5px;font-size:15px;color:#895127}.path-status.chosen{color:#38593c}.path-status .icon{width:22px;height:22px}.path-status small{font-size:12px}.growth-option.previewing{outline:1px dashed #916b42;outline-offset:-6px}.growth-preview>h3{text-align:center;font-size:17px}.skill-notes{margin:8px 0 12px}.growth-main-skill .skill-notes p{display:grid;grid-template-columns:4.5em 1fr;gap:6px;margin:4px 0;text-align:left;line-height:1.5}.skill-notes b{font-size:13px;color:#6c583d}
