@@ -945,20 +945,64 @@ function buildStatus() {
     ready: !maxed && !halted && unlocked && game.wallet >= cost };
 }
 
+function roomThumbnail(slot, guest) {
+  const frame = create("span", "room-thumb");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.backgroundPosition = `${(slot % roomsPerFloor) * 100 / (roomsPerFloor - 1)}% ${slot < roomsPerFloor ? 0 : 100}%`;
+  const special = slot === game.viewRoom ? "观景" : slot === game.business.restRoom ? "歇脚" : "";
+  if (special) frame.append(create("span", "room-thumb-type", special));
+  const item = roomFurnishing(game.hospitality, slot);
+  if (item) frame.append(furnitureIcon(item.icon));
+  if (guest) {
+    const sprite = makeSprite(guest.kind, "room-thumb-guest");
+    if (guest.kind === "bee" || guest.kind === "butterfly") sprite.classList.add("airborne");
+    frame.append(sprite);
+  }
+  return frame;
+}
+
+function drawRoomChoices(host, rooms, slots, selected, period, onChoose) {
+  const groups = [];
+  for (let floor = Math.ceil(rooms.length / roomsPerFloor) - 1; floor >= 0; floor--) {
+    const group = create("div", "room-choice-floor");
+    const heading = create("div", "room-choice-head");
+    heading.append(create("strong", "", floorNames[floor]), create("small", "", period));
+    const row = create("div", "room-choice-row");
+    for (let slot = floor * roomsPerFloor; slot < Math.min(rooms.length, (floor + 1) * roomsPerFloor); slot++) {
+      const guest = rooms[slot];
+      const occupant = guest ? animals[guest.kind].name : "空房";
+      const special = slot === game.viewRoom ? "观景房" : slot === game.business.restRoom ? "歇脚房" : "";
+      const item = roomFurnishing(game.hospitality, slot);
+      const card = create("label", "room-choice");
+      const input = create("input");
+      input.type = "radio";
+      input.name = host.id;
+      input.value = slot;
+      input.checked = slot === selected;
+      input.disabled = !slots.includes(slot);
+      const name = [roomName(slot), period, occupant, special, item?.name].filter(Boolean).join(" · ");
+      input.setAttribute("aria-label", name);
+      card.title = input.disabled ? `${name} · 此处不可选` : name;
+      input.addEventListener("change", () => onChoose?.(slot));
+      const image = roomThumbnail(slot, guest);
+      image.append(create("span", "room-thumb-number", String(slot % roomsPerFloor + 1)));
+      card.append(input, image, create("span", "room-choice-caption", occupant));
+      row.append(card);
+    }
+    group.append(heading, row);
+    groups.push(group);
+  }
+  host.replaceChildren(...groups);
+}
+
 function fillRoomPicker(id, excluded) {
   const picker = byId(id);
-  const upcoming = game.result?.nextRooms ?? game.rooms;
-  const options = [];
-  let firstEmpty;
-  for (const [slot, guest] of upcoming.entries()) {
-    if (slot === excluded) continue;
-    const option = create("option", "", `${roomName(slot)} · ${game.result ? "明晚" : ""}${guest ? `${animals[guest.kind].name}在住` : "空房"}`);
-    option.value = slot;
-    if (!guest) firstEmpty ??= option.value;
-    options.push(option);
-  }
-  picker.replaceChildren(...options);
-  picker.value = firstEmpty ?? options[0].value;
+  const rooms = game.result?.nextRooms ?? game.rooms;
+  const slots = rooms.flatMap((_, slot) => slot === excluded ? [] : [slot]);
+  const previous = dialog("build").open ? picker.querySelector("input:checked") : null;
+  const selected = previous && slots.includes(Number(previous.value)) ? Number(previous.value)
+    : slots.find(slot => !rooms[slot]) ?? slots[0];
+  drawRoomChoices(picker, rooms, slots, selected, game.result ? "明晚" : "今晚");
 }
 
 function openBuild() {
@@ -1011,7 +1055,7 @@ function openBuild() {
 
 function dressRoom(rest = false) {
   if (!(rest ? canBuildRestRoom(game) : canDressRoom(game))) return;
-  const slot = Number(byId(rest ? "restRoomSelect" : "viewRoomSelect").value);
+  const slot = Number(byId(rest ? "restRoomSelect" : "viewRoomSelect").querySelector("input:checked")?.value);
   const excluded = rest ? game.viewRoom : game.business.restRoom;
   if (!Number.isInteger(slot) || slot < 0 || slot >= game.rooms.length || slot === excluded) return;
   game.wallet -= rest ? restRoomCost : lookOutCost;

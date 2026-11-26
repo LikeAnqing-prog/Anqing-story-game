@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#e8edce">
 <title>溪湾旅栈试玩</title>
-<link rel="stylesheet" href="./inn.css?v=panorama-26">
-<script src="./hospitality.js?v=panorama-26" defer></script>
-<script src="./inn.js?v=cartoon-cottage-26" defer></script>
+<link rel="stylesheet" href="./inn.css?v=room-pictures-26">
+<script src="./hospitality.js?v=room-pictures-26" defer></script>
+<script src="./inn.js?v=room-pictures-26" defer></script>
 </head>
 <body>
 <main id="game" class="game" aria-label="溪湾旅栈">
@@ -86,8 +86,7 @@
       <ul id="phoneAssigned"></ul>
       <div id="phoneMove">
         <label>住客 <select id="moveGuest"></select></label>
-        <label>客房 <select id="moveRoom"></select></label>
-        <button id="moveApply" class="wood">调整房间</button>
+        <button id="moveRoom" class="wood move-room" aria-haspopup="dialog"></button>
       </div>
     </details>
     <div class="order-buttons" id="orderList"></div>
@@ -137,6 +136,14 @@
         <button id="cottageGifts"><i class="cottage-present" aria-hidden="true"></i>礼物柜</button>
       </nav>
     </section>
+  </div>
+</dialog>
+
+<dialog id="moveRoomMap" class="paper" aria-labelledby="moveRoomTitle">
+  <div class="paper-inner">
+    <header class="room-map-head"><h2 id="moveRoomTitle">调整客房</h2><form method="dialog"><button class="mini-button" aria-label="关闭选房">×</button></form></header>
+    <div id="moveRoomChoices" role="radiogroup" aria-labelledby="moveRoomTitle"></div>
+    <div class="dialog-actions"><button id="moveApply" class="wood primary">确认分房</button></div>
   </div>
 </dialog>
 
@@ -237,8 +244,7 @@
       <div class="build-preview"><span aria-hidden="true" class="view-icon"></span><h3 id="viewRoomTitle">布置观景房</h3></div>
       <p id="viewRoomStatus"></p>
       <div id="viewRoomPicker" class="view-room-picker">
-        <label for="viewRoomSelect">选择客房</label>
-        <select id="viewRoomSelect"></select>
+        <div id="viewRoomSelect" role="radiogroup" aria-label="选择观景房"></div>
       </div>
       <button class="wood" id="viewRoomConfirm"></button>
     </section>
@@ -246,8 +252,7 @@
       <div class="build-preview"><span aria-hidden="true" class="rest-icon"></span><h3 id="restRoomTitle">布置歇脚房</h3></div>
       <p id="restRoomStatus"></p>
       <div id="restRoomPicker" class="view-room-picker">
-        <label for="restRoomSelect">选择歇脚房</label>
-        <select id="restRoomSelect"></select>
+        <div id="restRoomSelect" role="radiogroup" aria-label="选择歇脚房"></div>
       </div>
       <button class="wood" id="restRoomConfirm"></button>
     </section>

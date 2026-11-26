@@ -178,20 +178,18 @@ function hospitalityCard(title, detail, icon) {
 
 function roomChooser(panel, slots) {
   if (!slots.includes(furnishingSlot)) furnishingSlot = slots[0] ?? null;
-  const label = create("label", "hospitality-picker", "选择空房");
-  const picker = create("select");
-  for (const slot of slots) {
-    const item = roomFurnishing(game.hospitality, slot);
-    const option = create("option", "", `${roomName(slot)} · ${item?.name ?? "还没装扮"}`);
-    option.value = slot;
-    picker.append(option);
-  }
-  if (!slots.length) picker.append(create("option", "", "等客人退房后再布置"));
-  picker.disabled = !slots.length;
-  if (!picker.disabled) picker.value = furnishingSlot;
-  picker.addEventListener("change", () => { furnishingSlot = Number(picker.value); renderHospitality(); });
-  label.append(picker);
-  panel.append(label);
+  const picker = create("div");
+  picker.id = "furnishingRooms";
+  picker.setAttribute("role", "radiogroup");
+  picker.setAttribute("aria-label", "选择要装扮的空房");
+  const rooms = game.result?.nextRooms ?? game.rooms;
+  drawRoomChoices(picker, rooms, slots, furnishingSlot, game.result ? "明晚" : "今晚", slot => {
+    furnishingSlot = slot;
+    renderHospitality();
+    byId("furnishingRooms").querySelector("input:checked")?.focus({preventScroll:true});
+  });
+  panel.append(picker);
+  if (!slots.length) panel.append(create("p", "friend-summary", "等有空房时再布置。"));
 }
 
 function refreshHospitality(message = "") {
@@ -554,9 +552,9 @@ function renderFriendList(panel) {
 function renderGiftCabinet(panel) {
   const h = game.hospitality;
   const slots = furnishableRooms();
-  roomChooser(panel, slots);
-  panel.append(create("p", "friend-summary", h.showcase ? `大厅陈列 · ${furnishings[h.showcase].name}` : "大厅有一个空陈列位"));
   const keys = Object.keys(h.gifts).filter(key => h.gifts[key] === "kept");
+  if (keys.some(key => !furnishings[key].lobby)) roomChooser(panel, slots);
+  panel.append(create("p", "friend-summary", h.showcase ? `大厅陈列 · ${furnishings[h.showcase].name}` : "大厅有一个空陈列位"));
   if (!keys.length) panel.append(create("p", "visit-note", "有朋友来小屋做客时，礼物会收在这里。"));
   for (const key of keys) {
     const item = furnishings[key];
@@ -623,20 +621,27 @@ function renderRoomPlan(rooms, selected, assigned, effects) {
   const free = rooms.flatMap((guest,slot) => guest || assigned[slot]?.needsView || assigned[slot]?.needsFlower ? [] : [slot]);
   byId("phoneMove").hidden = !movers.length || free.length<2;
   const guestPicker = byId("moveGuest");
-  const roomPicker = byId("moveRoom");
+  const previousGuest = guestPicker.value;
   guestPicker.replaceChildren(...movers.map(guest => {
-    const option = create("option", "", `${animals[guest.kind].name} · ${roomName(assigned.findIndex(person=>person?.id===guest.id))}`);
+    const option = create("option", "", `${animals[guest.kind].name} · ${roomName(assigned.findIndex(person => person?.id === guest.id))}`);
     option.value = guest.id;
     return option;
   }));
-  if (movers.some(guest=>guest.id===game.roomChoice?.id)) guestPicker.value=game.roomChoice.id;
-  roomPicker.replaceChildren(...free.map(slot => {
-    const option = create("option", "", roomName(slot));
-    option.value=slot;
-    return option;
-  }));
-  const current = assigned.findIndex(person=>person?.id===guestPicker.value);
-  if (free.includes(current)) roomPicker.value=current;
+  const active = movers.find(guest => guest.id === previousGuest) ?? movers.find(guest => guest.id === game.roomChoice?.id) ?? movers[0];
+  if (!active || free.length < 2) return;
+  guestPicker.value = active.id;
+  const updateDestination = () => {
+    const current = assigned.findIndex(person => person?.id === guestPicker.value);
+    const button = byId("moveRoom");
+    button.replaceChildren(roomThumbnail(current, assigned[current]), create("span", "", `${roomName(current)} · 换房`));
+    button.onclick = () => {
+      byId("moveRoomTitle").textContent = `给${animals[assigned[current].kind].name}选房`;
+      drawRoomChoices(byId("moveRoomChoices"), assigned, free, current, game.phase === "planning" ? "今晚预排" : "明晚预排");
+      show("moveRoomMap");
+    };
+  };
+  guestPicker.onchange = updateDestination;
+  updateDestination();
 }
 
 function openKeepsakes() {
@@ -755,9 +760,10 @@ function initHospitality() {
   byId("lobbyDisplay").addEventListener("click", () => openHospitality("gifts"));
   byId("moveApply").addEventListener("click", () => {
     const id = byId("moveGuest").value;
-    const slot = Number(byId("moveRoom").value);
+    const slot = Number(byId("moveRoomChoices").querySelector("input:checked:not(:disabled)")?.value);
     if (!id || !Number.isInteger(slot)) return;
     game.roomChoice = {id,slot};
+    dialog("moveRoomMap").close();
     save();
     renderPhone();
   });
