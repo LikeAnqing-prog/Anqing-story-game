@@ -234,3 +234,17 @@
 .inherit-attributes { display:flex; gap:4px 10px; flex-wrap:wrap; font-size:12px; }
 .inherit-attributes .icon { width:17px; height:17px; }
 .mutation-inline-notes { display:grid; gap:4px; margin-top:8px; font-size:12px; color:#66563c; }
+
+.mutation-comparison { margin:16px 0 9px; text-align:center; }
+.mutation-comparison>h3 { font-size:17px; }
+.mutation-types { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px; margin:7px 0; }
+.mutation-types>div { display:grid; justify-items:center; gap:2px; padding:8px 3px; border-radius:5px; background:#e1e4c5; }
+.mutation-types>div+div { background:#e5dcf0; }
+.mutation-types :is(.icon,.resource-icon) { width:24px; height:24px; }
+.mutation-types span { font-size:12px; }
+.mutation-types small,.mutation-comparison>p { font-size:11px; line-height:1.5; }
+.mutation-plan h3 small,.rare-plan h4 { font-size:13px; }
+.mutation-plan .rare-chance b { color:#476143; }
+.rare-plan h4 { margin:12px 0 4px; text-align:center; }
+.dew-balance { margin:7px 0 3px; }
+.mutation-plan .inline-actions>.btn { white-space:normal; padding-inline:5px; }
