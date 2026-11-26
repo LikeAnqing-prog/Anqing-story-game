@@ -357,7 +357,12 @@
   inset:calc(max(12px,env(safe-area-inset-top)) + 78px) 0 calc(max(9px,env(safe-area-inset-bottom)) + 79px);
   padding:0 max(9px,env(safe-area-inset-left)) 14px max(9px,env(safe-area-inset-right));
 }
-.dorm-page-content { max-width:720px; margin:0 auto; }
+.dorm-page-content { max-width:560px; margin:0 auto; }
+.dorm-top {
+  position:sticky; top:0; z-index:3; padding-bottom:4px;
+  background:#f2e7d3;
+}
+.dorm-content { overscroll-behavior-y:contain; }
 .dorm-toolbar { display:flex; align-items:center; justify-content:space-between; gap:6px; padding:4px 4px 4px 7px; }
 .dorm-toolbar>div { display:grid; gap:1px; }
 .dorm-toolbar span { font-size:12px; }
@@ -365,38 +370,22 @@
 .dorm-toolbar .btn .icon { width:19px; height:19px; }
 .dorm-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px; margin:3px 0; }
 .dorm-tabs .btn { min-height:44px; }
-/* A single painted beam and floor span the room controls. */
-.manor-viewport {
-  overflow-x:auto; overflow-y:hidden; margin-inline:calc(-1 * max(9px,env(safe-area-inset-left))) calc(-1 * max(9px,env(safe-area-inset-right)));
-  cursor:grab; user-select:none; scrollbar-width:thin; scrollbar-color:#9a744a #ead9b7;
-  background:#a77847;
+/* Shared posts and beams join the stacked room artwork. */
+.manor-building { cursor:grab; user-select:none; }
+.manor-building:active { cursor:grabbing; }
+.manor-bay {
+  position:relative; aspect-ratio:1.85;
+  background:url('assets/v159-manor-stack.webp') center top/100% 200% no-repeat;
 }
-.manor-viewport:active { cursor:grabbing; }
-.manor-building {
-  --bay:clamp(154px, 46vw, 234px);
-  --hall-art:url('assets/v158-manor-hall.webp');
-  position:relative; display:flex; width:max-content; min-width:100%;
-  height:calc(var(--bay) * 4 / 3); isolation:isolate;
-}
-.manor-building::before,.manor-building::after {
-  content:""; position:absolute; left:0; right:0; z-index:-1; pointer-events:none;
-  background-image:var(--hall-art); background-repeat:repeat-x;
-}
-.manor-building::before {
-  top:0; height:73%; background-position:left top; background-size:calc(var(--bay) * 4) 119%;
-}
-.manor-building::after {
-  bottom:0; height:27%; background-position:left bottom; background-size:calc(var(--bay) * 4) 628%;
-}
-.manor-bay { position:relative; flex:0 0 var(--bay); }
-.manor-viewport button { cursor:pointer; }
+.manor-bay:nth-child(even) { background-position:center bottom; }
+.manor-building button { cursor:pointer; }
 .manor-furniture {
-  position:absolute; inset:auto 9% 24%; display:flex; align-items:end; justify-content:space-between;
+  position:absolute; inset:auto 10% 16%; display:flex; align-items:end; justify-content:space-between;
   pointer-events:none;
 }
 .manor-furniture button {
   pointer-events:auto; display:grid; place-items:center; position:relative;
-  width:max(44px,38%); aspect-ratio:1; padding:0;
+  width:clamp(44px,20%,95px); aspect-ratio:1; padding:0;
 }
 .furniture-art {
   display:block; width:100%; aspect-ratio:1;
@@ -412,12 +401,12 @@
 .manor-dock p { margin:0; font-size:13px; color:#563d29; }
 .manor-dock .btn { min-height:42px; width:auto; padding-inline:10px; white-space:nowrap; }
 .dorm-room-label {
-  position:absolute; top:17%; left:9%; right:9%; display:flex; justify-content:space-between;
-  align-items:center; gap:4px; min-height:36px; padding:2px 7px;
+  position:absolute; top:12%; left:50%; translate:-50% 0; display:flex; justify-content:center;
+  align-items:center; gap:8px; min-height:36px; min-width:108px; padding:2px 10px; white-space:nowrap;
   background:#f4e2c8ed; border-radius:4px; color:#4a321f; font-size:14px;
 }
 .dorm-room-label small { font:600 11px/1 system-ui; }
-.dorm-residents { position:absolute; inset:auto 8% 6%; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:2px; align-items:end; pointer-events:none; }
+.dorm-residents { position:absolute; inset:auto 27% 8%; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:2px; align-items:end; pointer-events:none; }
 .dorm-cat { min-width:0; display:grid; align-content:end; justify-items:center; gap:1px; padding:1px; pointer-events:auto; }
 .dorm-cat>.sprite { width:min(100%,66px); filter:drop-shadow(0 1px 0 #fff2cbd0); }
 .dorm-cat b,.dorm-cat small { font-size:12px; width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
