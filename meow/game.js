@@ -17,8 +17,8 @@ function skin(kind='panel',index=0) {
     return index===3 ? rect('v2-panels',[.49,.445,.51,.54],'card-art') :
       '<span class="art thin-panel" aria-hidden="true"></span>';
   }
-  if(index>=0 && index<6) return `<span class="art paper-skin tone-${index}" aria-hidden="true"></span>`;
-  return rect('v2-buttons',[(index%2)*.5,Math.floor(index/2)*.25,.5,.25]);
+  const tone=index>=0&&index<6?index:2;
+  return `<span class="art paper-skin tone-${tone}" aria-hidden="true"></span>`;
 }
 function icon(i,cls=''){return `<span class="icon ${cls}" aria-hidden="true" style="background-position:${i%4/3*100}% ${Math.floor(i/4)/3*100}%"></span>`;}
 function mutantAtlas(c){return Number.isInteger(c.mutation)&&c.mutation>=3&&c.mutation<G.MUTATIONS.length?{sheet:c.mutation<7?'v12-mutants-a':'v12-mutants-b',row:(c.mutation-3)%4}:null;}
@@ -1080,9 +1080,9 @@ function mountManor() {
   for(const event of ['pointerup','pointercancel','lostpointercapture'])scene.addEventListener(event,()=>{drag=null;});
   scene.addEventListener('click',e=>{if(suppressClick&&e.detail>0){e.preventDefault();e.stopImmediatePropagation();}},true);
 }
-const assets=['v159-manor-stack','v158-manor-furniture','v155-leaf-box','v155-dew-box','v141-skill-icons','v141-range-tiles','v12-mutants-a','v12-mutants-b','v9-walk-pointed','v9-walk-round','v9-walk-rare','v8-nursery-room','v8-square-back','v8-welcome','v7-hearts-teams','v7-skills-growth','v6-rare-cats-clean','v6-panel-thin','v6-resources','v6-battle-tiles','v4-ground','v4-foreground-tree','v3-map-village','v2-map-home','v2-map-battle','v2-cats','v2-cats-round','v2-panels','v2-buttons','v2-icons'];
+const assets=['v159-manor-stack','v158-manor-furniture','v155-leaf-box','v155-dew-box','v141-skill-icons','v141-range-tiles','v12-mutants-a','v12-mutants-b','v9-walk-pointed','v9-walk-round','v9-walk-rare','v8-nursery-room','v8-square-back','v8-welcome','v7-hearts-teams','v7-skills-growth','v6-rare-cats-clean','v6-panel-thin','v6-resources','v6-battle-tiles','v4-ground','v4-foreground-tree','v3-map-village','v2-map-home','v2-map-battle','v2-cats','v2-cats-round','v2-panels','v2-icons'];
 let imagesReady=0;const loadedImage=ok=>{imagesReady++;const label=document.querySelector('#loading p');if(label)label.textContent='小院正在醒来…… '+Math.round(imagesReady/assets.length*100)+'%';return ok;};
 Promise.all(assets.map(n=>new Promise(resolve=>{const i=new Image();i.onload=()=>i.decode().catch(()=>{}).then(()=>resolve(loadedImage(true)));i.onerror=()=>resolve(loadedImage(false));i.src=ASSET(n);}))).then(results=>{render();$('#loading').remove();if(results.some(x=>!x))modal('有几张画还没送到','网络有些慢，部分画面还未加载完成。请重新载入。',btn('重新载入','reload'));if(!state.pendingReveal&&(state.pendingWelcomes.length||state.pendingGrowth.length))showNextCelebration();if(loadNotice)toast(loadNotice);});
 document.addEventListener('click',e=>{if(e.target.closest('[data-action="reload"]'))location.reload();const el=e.target.closest('summary,button');if(el&&!el.disabled&&!el.closest('[data-action]')&&!e.defaultPrevented)MeowSound.play('tap');});
-window.MeowDemo={build:'15.9-vertical-manor',getWelcomeShowing:()=>welcomeShowing,getGrowthShowing:()=>levelShowing,getBattlePhase:()=>battleCue?.phase||null,getCamera:()=>({...camera}),getVillageScene:()=>({time:villageTime,tree:{...TREE},gate:VillageMotion.gate,cats:[...document.querySelectorAll('.village-cat')].map(el=>({id:Number(el.dataset.id),x:parseFloat(el.style.left),y:parseFloat(el.style.top),depth:Number(el.style.zIndex),moving:el.dataset.moving,frame:Number(el.dataset.frame)}))}),getState:()=>JSON.parse(JSON.stringify(state)),getPage:()=>page,getBattle:()=>battle?JSON.parse(JSON.stringify(battle)):null};
+window.MeowDemo={build:'16.0-ink-slices',getWelcomeShowing:()=>welcomeShowing,getGrowthShowing:()=>levelShowing,getBattlePhase:()=>battleCue?.phase||null,getCamera:()=>({...camera}),getVillageScene:()=>({time:villageTime,tree:{...TREE},gate:VillageMotion.gate,cats:[...document.querySelectorAll('.village-cat')].map(el=>({id:Number(el.dataset.id),x:parseFloat(el.style.left),y:parseFloat(el.style.top),depth:Number(el.style.zIndex),moving:el.dataset.moving,frame:Number(el.dataset.frame)}))}),getState:()=>JSON.parse(JSON.stringify(state)),getPage:()=>page,getBattle:()=>battle?JSON.parse(JSON.stringify(battle)):null};
 })();

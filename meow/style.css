@@ -43,7 +43,6 @@
 .star-rating{display:inline-flex;align-items:center;gap:2px;vertical-align:middle}.star-rating .icon{width:25px;height:25px}.star-rating .star-empty{opacity:.22;filter:grayscale(1)}.modal .star-rating .icon{width:38px;height:38px}
 
 /* v6: fixed-width generated paper edge, resource atlas and tactical sprites. */
-.art.thin-panel{border:16px solid transparent;border-image:url('assets/v6-panel-thin.webp') 80 fill / 16px / 0 stretch;overflow:visible}
 .panel,.target-panel,.plan-panel,.scout-panel,.tactics-panel,.rare-plan,.rare-note{padding:17px 18px}.skin.scroll-shell>.scroll-content{inset:22px 17px 20px}.modal{padding:25px 24px}.cat-card{padding:10px 8px 13px}.wish-item{padding:17px 18px}.panel-tight{padding:16px}.plan-panel h3,.rare-plan h3{font-size:17px}.rare-plan{margin:12px 0}.resource-icon{display:inline-block;width:30px;height:30px;flex-shrink:0;background-image:url('assets/v6-resources.webp');background-size:200% 200%;background-repeat:no-repeat;vertical-align:middle}.resource-chip{display:inline-flex;align-items:center;gap:1px;white-space:nowrap;vertical-align:middle;line-height:1.1;color:#484537}.resource-chip>span:last-child{font-variant-numeric:tabular-nums}.small .resource-icon{width:24px;height:24px}.btn .resource-icon{width:28px;height:28px}.wallet .resource-icon{width:35px;height:35px}.reward-resources{display:flex;justify-content:center;gap:12px;margin:10px 0;font-size:23px}.reward-resources .resource-icon{width:40px;height:40px}.resource-dock{position:absolute;top:134px;left:14px;display:flex;gap:14px;padding:6px 15px;z-index:12;font-size:16px}.wish-banner{top:188px;padding:17px 20px}.wish-reopen{top:190px}.rare-chance{font-size:18px;margin:12px 0}.rare-chance b{font-size:28px;color:#8a4d62}.dew-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px}.dew-options .btn{width:100%;font-size:13px;padding:7px 1px;min-height:43px}.rare-tag{color:#8a4d62;font-size:11px}.rare-catalog{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.rare-catalog .sprite{max-width:165px}.rare-catalog .undiscovered .sprite{opacity:.68}.rare-catalog .cat-card{min-height:190px}.resource-legend p{margin:10px 0;line-height:1.6}.rare-note h3{font-size:17px}.tabs{gap:1px}.tabs .btn{min-width:0;font-size:14px;padding:10px 5px}
 .tactical-stage{top:95px;bottom:100px;display:flex;flex-direction:column;align-items:center;gap:3px}.tactical-stage .battle-top{width:100%;flex-wrap:nowrap;min-height:43px}.tactical-stage .battle-top .wallet{font-size:14px;min-width:100px;padding:10px}.tactical-stage .battle-top .btn{min-height:43px;width:88px;padding:8px 4px}.turn-strip{width:100%;max-width:380px;height:42px;display:flex;align-items:center;justify-content:center;gap:4px;font-size:11px}.turn-portrait{width:33px;position:relative}.turn-portrait.enemy-turn{opacity:.65}.arena{width:min(100%,380px,calc(100dvh - 340px));aspect-ratio:1;position:relative;flex-shrink:0;margin:4px auto 0}.ground-cell{position:absolute;width:20%;height:20%;pointer-events:none}.battle-art{display:block;position:absolute;inset:0;background-image:url('assets/v6-battle-tiles.webp');background-size:200% 200%;background-repeat:no-repeat;pointer-events:none}.arena-unit{position:absolute;width:16.4%;height:22.4%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;pointer-events:none}.arena-unit>.sprite{width:100%;flex-shrink:0;z-index:1}.arena-name{font-size:10px;line-height:1;white-space:nowrap;margin-top:-4px;color:#3c463a;font-weight:bold;text-shadow:0 1px 2px #fff4d8;z-index:2}.arena-unit.foe .arena-name{color:#8b503f}.arena-unit .health{width:88%;height:9px;min-height:9px;position:relative;z-index:2}.arena-unit .health-fill{width:63px}.arena-hp{font-size:9px;line-height:1.1;white-space:nowrap;text-shadow:0 1px 2px #fff4d8;z-index:2}.arena-unit.dead{opacity:.18}.arena-unit.dead .health,.arena-unit.dead .arena-hp,.arena-unit.dead .arena-name{visibility:hidden}.active-ring{top:20%;bottom:0;left:-15%;right:-15%;z-index:0}.arena-status{position:absolute;right:-8px;top:38%;width:18px;height:18px;z-index:3}.arena-effects{position:absolute;top:-12px;left:0;right:0;display:flex;gap:3px;justify-content:center;z-index:9;font-size:19px;text-shadow:0 1px 2px #fff7d9;animation:ink-number .26s ease-out}.hit-art{z-index:8;inset:0 -10% 10%}.arena-unit.windup .sprite{animation:ink-ready .22s ease-in-out}.arena-unit.travelling{animation:ink-travel var(--phase-time) ease-in-out both}.action-caption{padding:10px 16px;width:100%;max-width:380px;text-align:center;min-height:36px;font-size:13px}.action-caption p{margin:0}.arena-guide{font-size:10px;margin:0;text-align:center}.battle-log{padding:16px 20px;font-size:13px;height:88px}.battle-log p{margin:0 0 3px}.green{color:#5b7a57}
 @keyframes ink-ready{50%{transform:scale(.92) rotate(-6deg)}}@keyframes ink-travel{from{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy)))}55%{filter:brightness(1.05)}to{transform:translate(-50%,-50%)}}@keyframes ink-number{from{transform:translateY(8px);opacity:.3}to{transform:translateY(-3px);opacity:1}}
@@ -193,18 +192,39 @@
 .school-preview{margin:8px 0 14px;text-align:center}.school-preview p,.school-preview small{font-size:13px}
 .skill-local-action{text-align:center}.skill-local-action .btn{display:inline-flex;width:auto;min-height:40px}
 
-/* Keep painted corners in proportion as the center of each paper tile grows. */
-.art.paper-skin {
-  border: 12px solid transparent;
-  border-image: var(--paper-image) 36 47 27 47 fill / 12px / 0 stretch;
+/* Paint the perimeter at a fixed scale and size the paper center separately. */
+.art:is(.thin-panel,.paper-skin) {
+  border-style:solid;
+  border-color:transparent;
+  border-image:var(--ink-sheet) var(--ink-cut) / 1 / 0 repeat;
 }
-.tone-0 { --paper-image: url('assets/v151-paper-0.webp'); }
-.tone-1 { --paper-image: url('assets/v151-paper-1.webp'); }
-.tone-2 { --paper-image: url('assets/v151-paper-2.webp'); }
-.tone-3 { --paper-image: url('assets/v151-paper-3.webp'); }
-.tone-4 { --paper-image: url('assets/v151-paper-4.webp'); }
-.tone-5 { --paper-image: url('assets/v151-paper-5.webp'); }
-.journey-ink>.paper-skin{border-image-width:4px 12px}
+.art:is(.thin-panel,.paper-skin)::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  background:var(--ink-sheet) center var(--ink-center-y,50%)/var(--ink-center-size) no-repeat;
+}
+.art.thin-panel {
+  --ink-sheet:url('assets/v6-panel-thin.webp');
+  --ink-cut:80;
+  /* 1254 px canvas with 80 px removed from each side. */
+  --ink-center-size:calc(100% * 1254 / 1094) calc(100% * 1254 / 1094);
+  border-width:16px;
+}
+.art.paper-skin {
+  --ink-cut:36 47 27 47;
+  /* 460 × 139 px canvas, 366 × 76 px center after insets. */
+  --ink-center-size:calc(100% * 460 / 366) calc(100% * 139 / 76);
+  --ink-center-y:calc(100% * 36 / 63);
+  border-width:12px calc(47px / 3) 9px;
+}
+.tone-0 { --ink-sheet: url('assets/v151-paper-0.webp'); }
+.tone-1 { --ink-sheet: url('assets/v151-paper-1.webp'); }
+.tone-2 { --ink-sheet: url('assets/v151-paper-2.webp'); }
+.tone-3 { --ink-sheet: url('assets/v151-paper-3.webp'); }
+.tone-4 { --ink-sheet: url('assets/v151-paper-4.webp'); }
+.tone-5 { --ink-sheet: url('assets/v151-paper-5.webp'); }
+.journey-ink>.paper-skin{border-width:4px calc(47px / 9) 3px}
 .kind-choice { min-width:0; width:min(100%,124px); text-align:center; }
 .kind-choice .portrait-slot { width:100%; min-height:64px; padding:8px 3px; }
 .kind-choice>small { display:block; margin-top:4px; font-size:11px; }
