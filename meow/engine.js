@@ -33,9 +33,83 @@
   function placeCat(s,id,x,y){if(!s.team.includes(id)||!Number.isInteger(x)||x<0||x>=5||![3,4].includes(y))throw Error('请把出战猫放在我方下方两排。');const places=deployment(s),from=places.find(p=>p.id===id),other=places.find(p=>p.x===x&&p.y===y&&p.id!==id);if(other){other.x=from.x;other.y=from.y;}from.x=x;from.y=y;s.deployment=places;syncDeployment(s);return deployment(s);}
   const key=c=>`${c.color}-${c.pattern}-${c.ears}`;
   function initial(){return {version:2,coins:300,nextId:3,cats:[{id:1,name:'橘团',color:0,pattern:1,ears:0,hp:116,atk:26,speed:12,skill:0,gen:1,parents:[],mutation:null},{id:2,name:'云朵',color:1,pattern:2,ears:1,hp:140,atk:22,speed:10,skill:1,gen:1,parents:[],mutation:null}],team:[1,2],cleared:[],battles:0,pendingReveal:null,bred:0,seen:['0-1-0','1-2-1']};}
+  const roomCapacity=4, restPeriod=10*60*1000, restLimit=6, maxRooms=2500;
+
+  function validDormitory(dormitory, cats) {
+    if(dormitory===undefined)return true;
+    if(!dormitory||!Number.isInteger(dormitory.rooms)||dormitory.rooms<2||
+      dormitory.rooms>maxRooms||!Array.isArray(dormitory.beds)||dormitory.beds.length>cats.length)return false;
+    const catIds=new Set(cats.map(c=>c?.id)), assigned=new Set(), sizes=new Map();
+    for(const bed of dormitory.beds){
+      if(!bed||!catIds.has(bed.id)||assigned.has(bed.id)||!Number.isInteger(bed.room)||
+        bed.room<0||bed.room>=dormitory.rooms||!Number.isSafeInteger(bed.since)||bed.since<0)return false;
+      assigned.add(bed.id);
+      const used=(sizes.get(bed.room)||0)+1;
+      if(used>roomCapacity)return false;
+      sizes.set(bed.room,used);
+    }
+    return true;
+  }
+
+  function initDormitory(s, now=Date.now()) {
+    if(s.dormitory)return s.dormitory;
+    s.dormitory={
+      rooms:Math.max(2,Math.ceil(s.cats.length/roomCapacity)),
+      beds:s.cats.map((c,i)=>({id:c.id,room:Math.floor(i/roomCapacity),since:now}))
+    };
+    return s.dormitory;
+  }
+
+  function dormitoryCost(s) {
+    return Math.min(450,150+50*(s.dormitory.rooms-2));
+  }
+
+  function expandDormitory(s) {
+    if(!s.dormitory||s.dormitory.rooms>=maxRooms)throw Error('小屋已经扩建到上限。');
+    const cost=dormitoryCost(s);
+    if(s.coins<cost)throw Error('铜钱还不够扩建。');
+    s.coins-=cost;
+    return s.dormitory.rooms++;
+  }
+
+  function assignBed(s,id,room,now=Date.now()) {
+    const d=s.dormitory;
+    if(!d||!Number.isInteger(room)||room<0||room>=d.rooms)throw Error('请选择一间已建好的宿舍。');
+    if(!s.cats.some(c=>c.id===id))throw Error('没有找到这只伙伴。');
+    const bed=d.beds.find(b=>b.id===id);
+    if(bed?.room===room)return false;
+    if(d.beds.filter(b=>b.room===room).length>=roomCapacity)throw Error('这间宿舍已经住满。');
+    if(bed)bed.room=room;
+    else d.beds.push({id,room,since:now});
+    return true;
+  }
+
+  function swapBeds(s,first,second) {
+    const beds=s.dormitory?.beds||[];
+    const a=beds.find(b=>b.id===first), b=beds.find(b=>b.id===second);
+    if(!a||!b||a.room===b.room)throw Error('请选择住在两间不同宿舍的伙伴。');
+    [a.room,b.room]=[b.room,a.room];
+  }
+
+  function dormRestPeriods(bed,now) {
+    return Math.min(restLimit,Math.max(0,Math.floor((now-bed.since)/restPeriod)));
+  }
+  function dormRest(s,now=Date.now()) {
+    return (s.dormitory?.beds||[]).reduce((sum,bed)=>sum+dormRestPeriods(bed,now)*2,0);
+  }
+  function claimDormRest(s,now=Date.now()) {
+    const total=dormRest(s,now), amount=Math.min(total,10000-(s.studyXP||0));
+    if(amount<=0)return 0;
+    for(const bed of s.dormitory.beds)if(dormRestPeriods(bed,now))bed.since=now-(now-bed.since)%restPeriod;
+    s.studyXP=(s.studyXP||0)+amount;
+    return amount;
+  }
+  const Dormitory={roomCapacity,maxRooms,init:initDormitory,cost:dormitoryCost,expand:expandDormitory,
+    assign:assignBed,swap:swapBeds,rest:dormRest,claim:claimDormRest};
+
   function validate(s){
     if(!s||s.version!==2||!Number.isInteger(s.coins)||s.coins<0||!Array.isArray(s.cats)||s.cats.length<2||s.cats.length>10000||!Array.isArray(s.team)||!Array.isArray(s.cleared)||!Array.isArray(s.seen))return false;
-    if(!Objectives.valid(s))return false;
+    if(!Objectives.valid(s)||!validDormitory(s.dormitory,s.cats))return false;
     if(s.wishClaims!==undefined&&(!Array.isArray(s.wishClaims)||new Set(s.wishClaims).size!==s.wishClaims.length||s.wishClaims.some((id,i)=>WISHES[i]?.id!==id)))return false;
     if(s.blessings!==undefined&&(!Number.isInteger(s.blessings)||s.blessings<0))return false;
     if(s.dryStreak!==undefined&&(!Number.isInteger(s.dryStreak)||s.dryStreak<0||s.dryStreak>7))return false;
@@ -264,6 +338,6 @@
   function learnSkill(s,id,skill){migrate(s);const c=s.cats.find(c=>c.id===Number(id));if(!c||!Number.isInteger(skill)||skill<0||skill>=SKILLS.length)throw Error('请选择猫咪与本领。');if(c.skill===skill)return {cost:0,changed:false};const known=c.learnedSkills.includes(skill),cost=known||!c.lessonUsed?0:2;if(s.geneNotes<cost)throw Error('再攒 2 点灵感，就能研习新本领。');s.geneNotes-=cost;if(!known){c.learnedSkills.push(skill);c.lessonUsed=true;}c.skill=skill;return {cost,changed:true};}
   function freeCell(b,p){return p.x>=0&&p.x<5&&p.y>=0&&p.y<5&&!(b.blocks||[]).some(q=>q.x===p.x&&q.y===p.y)&&!b.units.some(q=>q.life>0&&q.x===p.x&&q.y===p.y);}
 
-  const api={Objectives,Growth,GENE_CAP,addXP,patrolInfo,claimPatrol,study,train,mentor,FORMATION,deployment,syncDeployment,placeCat,replaceTeamCat,moveRange,combatProfile,attackCells,moveCells,canAttack,learnSkill,RARES,rare,rarityInfo,craftDew,attackRange,approach,ENCOUNTERS,levelInfo,trained,lookName,breedPlan,possibilities,recommendPair,canWelcome,welcomeGuest,encounter,battleStars,COLORS,PATTERNS,EARS,SKILLS,MUTATIONS,STAGES,key,initial,validate,preview,breed,createBattle,step,settle,WISHES,migrate,wishProgress,activeWish,claimWish,canSkip,fastForward};
+  const api={Objectives,Growth,Dormitory,GENE_CAP,addXP,patrolInfo,claimPatrol,study,train,mentor,FORMATION,deployment,syncDeployment,placeCat,replaceTeamCat,moveRange,combatProfile,attackCells,moveCells,canAttack,learnSkill,RARES,rare,rarityInfo,craftDew,attackRange,approach,ENCOUNTERS,levelInfo,trained,lookName,breedPlan,possibilities,recommendPair,canWelcome,welcomeGuest,encounter,battleStars,COLORS,PATTERNS,EARS,SKILLS,MUTATIONS,STAGES,key,initial,validate,preview,breed,createBattle,step,settle,WISHES,migrate,wishProgress,activeWish,claimWish,canSkip,fastForward};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;root.GameCore=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

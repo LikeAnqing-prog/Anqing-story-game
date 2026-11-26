@@ -234,7 +234,7 @@ function villageCat(c,i){
  const p=villagePosition(i,villageTime);
  return `<button class="village-cat ${state.cats.length>24?'crowded':''}" data-action="detail" data-id="${c.id}" aria-label="看看${esc(c.name)}" style="--cat-size:${size}px;width:${size}px;height:${size}px;left:${p.x}px;top:${p.y}px;z-index:${Math.round(p.y)}">${walkingSprite(c)}<span class="village-cat-name">${esc(c.name)}</span></button>`;
 }
-function villageHome(){G.migrate(state);return `<div class="map-viewport" id="village-view" aria-label="猫村地图，拖动平移，双指缩放"><div class="village-world" id="village-world"><img class="village-map" src="${ASSET('v4-ground')}" alt="水墨猫村地面" draggable="false">${villageTree()}${villageGate()}<button class="tree-access" data-action="family" aria-label="家族古树，查看谱系" style="left:${TREE.x}px;top:${TREE.y}px;width:${TREE.w}px;height:${TREE.h}px"></button>${btn('猫咪小屋','roster',{cls:'village-sign sign-house',tone:2,icon:8})}${btn('育猫小窝','breed',{cls:'village-sign sign-nursery',tone:1,icon:9})}${btn('家族古树','family',{cls:'village-sign sign-tree',tone:2,icon:12})}${btn('竹林试炼','team',{cls:'village-sign sign-battle',tone:0,icon:10})}${state.cats.map(villageCat).join('')}</div></div>${header('喵喵基因屋','一屋小猫 · 代代相逢',false)}<div class="map-tools">${btn('−','map-out',{tone:2,cls:'compact',label:'缩小地图'})}${btn('＋','map-in',{tone:2,cls:'compact',label:'放大地图'})}${btn('归位','map-fit',{tone:2,cls:'compact'})}<span class="skin map-count">${skin('button',2)}<span>全院 ${state.cats.length} 猫</span></span></div><button class="skin resource-dock" data-action="resource-info" aria-label="资源用途">${skin('button',2)}${resource(1,state.geneNotes)}${resource(3,state.starDew)}</button><div class="map-hint">树影小院 · 拖动逛院 · 双指缩放</div>${wishOpen?panel(wishBanner(),'home-dialogue wish-banner'):'<div class="wish-reopen">'+btn('目标','wish-toggle',{tone:2,cls:'compact',icon:7})+'</div>'}<div class="growth-dock">${btn('养成','academy',{tone:2,cls:'compact',icon:15})}${btn('巡游','patrol',{tone:2,cls:'compact',icon:7})}</div>${btn('？','help',{tone:2,cls:'help-link',label:'玩法与存档'})}${nav('home')}`;}
+function villageHome(){G.migrate(state);return `<div class="map-viewport" id="village-view" aria-label="猫村地图，拖动平移，双指缩放"><div class="village-world" id="village-world"><img class="village-map" src="${ASSET('v4-ground')}" alt="水墨猫村地面" draggable="false">${villageTree()}${villageGate()}<button class="tree-access" data-action="family" aria-label="家族古树，查看谱系" style="left:${TREE.x}px;top:${TREE.y}px;width:${TREE.w}px;height:${TREE.h}px"></button>${btn('猫咪小屋','roster',{cls:'village-sign sign-house',tone:2,icon:8})}${btn('育猫小窝','breed',{cls:'village-sign sign-nursery',tone:1,icon:9})}${btn('家族古树','family',{cls:'village-sign sign-tree',tone:2,icon:12})}${btn('竹林试炼','team',{cls:'village-sign sign-battle',tone:0,icon:10})}${state.cats.map(villageCat).join('')}</div></div>${header('喵喵基因屋','一屋小猫 · 代代相逢',false)}<div class="map-tools">${btn('−','map-out',{tone:2,cls:'compact',label:'缩小地图'})}${btn('＋','map-in',{tone:2,cls:'compact',label:'放大地图'})}${btn('归位','map-fit',{tone:2,cls:'compact'})}<button class="skin map-count" data-action="roster" aria-label="打开猫咪小屋，共 ${state.cats.length} 只猫">${skin('button',2)}<span>猫咪小屋</span></button></div><button class="skin resource-dock" data-action="resource-info" aria-label="资源用途">${skin('button',2)}${resource(1,state.geneNotes)}${resource(3,state.starDew)}</button><div class="map-hint">树影小院 · 拖动逛院 · 双指缩放</div>${wishOpen?panel(wishBanner(),'home-dialogue wish-banner'):'<div class="wish-reopen">'+btn('目标','wish-toggle',{tone:2,cls:'compact',icon:7})+'</div>'}<div class="growth-dock">${btn('养成','academy',{tone:2,cls:'compact',icon:15})}${btn('巡游','patrol',{tone:2,cls:'compact',icon:7})}</div>${btn('？','help',{tone:2,cls:'help-link',label:'玩法与存档'})}${nav('home')}`;}
 function mapBounds(){const v=$('#village-view');return v?{w:v.clientWidth,h:v.clientHeight}:null;}
 function minMapZoom(b){return Math.max(b.w/WORLD.w,b.h/WORLD.h);}
 function maxMapZoom(b){return Math.max(1.35,minMapZoom(b)*1.8);}
@@ -561,8 +561,8 @@ function squadCoach(){const members=state.team.map(cat),rule=G.encounter(state,s
 function scouting(){if(battleMode==='challenge'){const d=G.Objectives.challenges.find(x=>x.id===challengeId),missing=G.Objectives.challengeSetup(state,challengeId);return panel('<h3>'+d.name+' · '+d.tier+'阶挑战</h3><p class="note">'+d.desc+'</p>'+(missing.length?'<p class="note red">还需调整：'+missing.join('；')+'</p>':'<p class="note green">阵容条件已满足，出发试试！</p>')+'<p class="small">'+(state.objectives.challengeWins.includes(d.id)?'印记已获得，本次是自由练习。':'首次达成奖励 '+goalRewards(d)+' '+resource(2,d.xp))+'</p>','scout-panel');}const rule=G.encounter(state,stage,battleMode),record=state.stageStars[stage]||0;return panel(`<div class="flex between"><h3>${battleMode==='trail'?'远行第 '+rule.floor+' 段':G.STAGES[stage-1]}</h3><b class="red">${battleMode==='trail'?'纪录 '+state.trailBest+' 段':stars(record)}</b></div><h3 class="choice-header">敌情 · ${rule.name}</h3><p class="small">${rule.skills.map(i=>G.SKILLS[i].name).join(' / ')}${rule.shield?' · 入场护盾 '+rule.shield:''}</p><p class="note">${rule.tip}</p><p class="small">${battleMode==='trail'?'胜利获得 '+resource(1,2)+' '+resource(3,1)+' 与铜钱，下一段敌情轮换。':'三星条件：胜利 / 全员存活 / 8 回合内获胜。每颗新星 '+resource(0,'+40')+'，刷新星级再得 '+resource(1,1)+' '+resource(3,1)}</p>`,'scout-panel');}
 
 let backdropStart=null;
-screen.addEventListener('pointerdown',e=>{backdropStart={x:e.clientX,y:e.clientY,page,blank:!e.target.closest('.scroll-shell,.nursery-sheet,.nursery-footer,.team-footer,.nursery-birth-caption,.headline,.nav,.battle-stage,.battle-log,[data-action]')};});
-screen.addEventListener('click',e=>{const p=backdropStart;backdropStart=null;if(!p||!p.blank||p.page!==page||Math.hypot(e.clientX-p.x,e.clientY-p.y)>6||modalRoot.children.length)return;if(e.target.closest('.scroll-shell,.nursery-sheet,.nursery-footer,.team-footer,.nursery-birth-caption,.headline,.nav,.battle-stage,.battle-log,[data-action]'))return;if(page==='home'){if(Date.now()<mapSuppressUntil)return;if(wishOpen){MeowSound.play('back');wishOpen=false;$('.wish-banner')?.remove();const reopen=document.createElement('div');reopen.className='wish-reopen';reopen.innerHTML=btn('目标','wish-toggle',{tone:2,cls:'compact',icon:7});screen.append(reopen);}return;}MeowSound.play('back');goBack();});
+screen.addEventListener('pointerdown',e=>{backdropStart={x:e.clientX,y:e.clientY,page,blank:!e.target.closest('.scroll-shell,.dorm-content,.nursery-sheet,.nursery-footer,.team-footer,.nursery-birth-caption,.headline,.nav,.battle-stage,.battle-log,[data-action]')};});
+screen.addEventListener('click',e=>{const p=backdropStart;backdropStart=null;if(!p||!p.blank||p.page!==page||Math.hypot(e.clientX-p.x,e.clientY-p.y)>6||modalRoot.children.length)return;if(e.target.closest('.scroll-shell,.dorm-content,.nursery-sheet,.nursery-footer,.team-footer,.nursery-birth-caption,.headline,.nav,.battle-stage,.battle-log,[data-action]'))return;if(page==='home'){if(Date.now()<mapSuppressUntil)return;if(wishOpen){MeowSound.play('back');wishOpen=false;$('.wish-banner')?.remove();const reopen=document.createElement('div');reopen.className='wish-reopen';reopen.innerHTML=btn('目标','wish-toggle',{tone:2,cls:'compact',icon:7});screen.append(reopen);}return;}MeowSound.play('back');goBack();});
 
 function home(){return villageHome();}
 function pairSlots(){return `<div class="row-pair">${[0,1].map((n)=>`${n===1?`<div class="pair-mid">${icon(1)}</div>`:''}${parents[n]?card(cat(parents[n]),'select',true,n===0?'甲':'乙'):`<div class="skin cat-card">${skin('panel',1)}<div class="empty-cat">？</div><strong>选择双亲${n?'乙':'甲'}</strong></div>`}`).join('')}</div>`;}
@@ -653,15 +653,108 @@ function team(){G.syncDeployment(state);const max=Math.min(10,(state.cleared.at(
 function book(){if(filter==='rare')return rareBook();let combos=[];for(let ears=0;ears<2;ears++)for(let color=0;color<3;color++)for(let pattern=0;pattern<3;pattern++)combos.push({id:`${color}-${pattern}-${ears}`,color,pattern,ears,mutation:null});if(filter==='seen')combos=combos.filter(c=>state.seen.includes(G.key(c)));if(filter==='mutant')return shell('突变手记','每一点小毛病，都有用武之地',`${bookTop()}${mutationGallery('mutation-detail')}<p class="small center">普通繁育也能遇见 · 新种类优先发现</p>`,'book');return shell('猫咪图鉴','每一种不同，都值得记下',`${bookTop()}<div class="catalog-grid">${combos.map(c=>{const seen=state.seen.includes(G.key(c));return `<button class="skin cat-card ${seen?'':'unknown'}" data-action="combo" data-id="${c.id}" aria-label="${seen?G.COLORS[c.color]+G.PATTERNS[c.pattern]+G.EARS[c.ears]:'未发现组合'}">${skin('panel',1)}${discoverySprite(c,seen)}<strong>${seen?G.COLORS[c.color]+G.PATTERNS[c.pattern]:'未发现'}</strong><span class="small">${G.EARS[c.ears]}</span></button>`;}).join('')}</div><p class="note center">未发现的小猫只展示剪影 · 遇见后点亮模样</p>`,'book');}
 function bookTop(){return `${panel(`<div class="flex between"><h2>${state.seen.length} <small class="sub">/ 18 种模样</small></h2><span>突变 ${state.mutationSeen.length} / ${G.MUTATIONS.length}</span></div>`,'collection-summary')}<div class="tabs">${[['all','全部'],['seen','已发现'],['mutant','突变'],['rare','稀有']].map(([a,n])=>btn(n,'filter',{id:a,tone:filter===a?1:2,cls:'compact'})).join('')}</div>`;}
 function family(){const c=cat(familyId)||state.cats.at(-1),ps=c.parents.map(cat),children=state.cats.filter(x=>x.parents.includes(c.id));return shell('家族古树','记得来处，也期待下一代',`<h2>${esc(c.name)}的家族</h2><div class="family-picker">${state.cats.map(x=>btn(esc(x.name),'family-select',{id:x.id,tone:x.id===c.id?1:2,cls:'compact'})).join('')}</div>${ps.length?`<p class="family-caption">双亲 · 第 ${ps[0].gen} / ${ps[1].gen} 代</p><div class="row-pair">${ps.map(x=>card(x,'family-select')).join('')}</div><div class="family-arrow">${icon(13)}</div>`:`<p class="family-caption">这是一只初代猫，家族故事从这里开始。</p>`}<div class="family-child">${card(c)}</div>${panel(`<p class="center">${G.COLORS[c.color]} · ${G.PATTERNS[c.pattern]} · ${G.EARS[c.ears]}<br>第 ${c.gen} 代 · ${G.SKILLS[c.skill].name}${c.mutation!==null?' · '+G.MUTATIONS[c.mutation].name:''}</p>`,'panel-tight')}<h3 class="choice-header">它的后代 ${children.length?`· ${children.length} 只`:''}</h3>${children.length?`<div class="family-arrow">${icon(13)}</div><div class="family-children">${children.map(x=>card(x,'family-select')).join('')}</div>`:`<p class="sub center">还没有后代，去试一次新的组合吧。</p>`}${btn('带它去繁育','family-breed',{id:c.id,icon:9})}`,'family');}
-function roster(){return shell('猫咪小屋','都在这里，慢慢长大',`<h2>院里的 ${state.cats.length} 只小伙伴</h2><p class="sub">点猫咪查看属性、本领和家族。</p>${collection('detail')}${btn('去育猫小窝','breed',{icon:9})}`,'home');}
+const dormThemes=['竹影间','桃暖间','芦月间','听雨间'];
+let rosterMode='rooms';
+function roomName(i){return (Math.floor(i/2)+1)+' 楼 · '+dormThemes[i%4];}
+
+function roomOccupants(room) {
+  return state.dormitory.beds.filter(b=>b.room===room).map(b=>cat(b.id));
+}
+function dormCat(c,action='detail',id=c.id,label='') {
+  return `<button class="dorm-cat" type="button" data-action="${action}" data-id="${id}" aria-label="${esc(c.name)}${label?' · '+label:''}">
+    ${sprite(c)}<b>${esc(c.name)}</b>${label?`<small>${label}</small>`:''}</button>`;
+}
+function dormRoom(room,occupants) {
+  return `<article class="dorm-room room-theme-${room%4}">
+    <button class="dorm-room-art" type="button" data-action="dorm-room" data-id="${room}" aria-label="管理${roomName(room)}"></button>
+    <div class="dorm-residents">${occupants.map(c=>dormCat(c)).join('')}
+    ${Array.from({length:G.Dormitory.roomCapacity-occupants.length},()=>`<button class="dorm-empty-bed" type="button"
+      data-action="dorm-picker" data-id="${room}" aria-label="${roomName(room)}的空床">＋</button>`).join('')}</div>
+    <button class="dorm-room-label" type="button" data-action="dorm-room" data-id="${room}">
+      <strong>${dormThemes[room%4]}</strong><small>${occupants.length}/${G.Dormitory.roomCapacity} ›</small></button>
+  </article>`;
+}
+function dormFloors() {
+  const d=state.dormitory, occupancy=Array.from({length:d.rooms},()=>[]);
+  const catsById=new Map(state.cats.map(c=>[c.id,c]));
+  const housed=new Set();
+  for(const bed of d.beds){occupancy[bed.room].push(catsById.get(bed.id));housed.add(bed.id);}
+  const waiting=state.cats.filter(c=>!housed.has(c.id));
+  const tiles=occupancy.map((cats,i)=>dormRoom(i,cats));
+  if(d.rooms<G.Dormitory.maxRooms)tiles.push(`<button class="dorm-build-slot skin" type="button" data-action="dorm-build">
+    ${skin()}${icon(8)}<b>扩建一间</b><small>＋${G.Dormitory.roomCapacity} 张床 · ${resource(0,G.Dormitory.cost(state))}</small></button>`);
+  const floors=Array.from({length:Math.ceil(tiles.length/2)},(_,i)=>`<section class="dorm-floor">
+    <h3>${i+1} 楼</h3><div class="dorm-floor-rooms">${tiles.slice(i*2,i*2+2).join('')}</div></section>`);
+  return (waiting.length?`<section class="dorm-lobby"><div class="dorm-lobby-head"><h3>待入住 · ${waiting.length} 只</h3>
+    <button class="dorm-text-link" data-action="dorm-tab" data-id="catalog">查看名册 ›</button></div>
+    <div class="dorm-lobby-cats">${waiting.slice(0,8).map(c=>dormCat(c,'dorm-destination',c.id)).join('')}</div>
+    </section>`:'')+floors.join('');
+}
+function dormClaimLabel() {
+  const reward=Math.min(G.Dormitory.rest(state),10000-state.studyXP);
+  return {reward,text:reward?'领取 '+reward+' 心得':state.studyXP>=10000?'心得已满':'心得积累中'};
+}
+function roster() {
+  const claim=dormClaimLabel(), d=state.dormitory;
+  const head=`<section class="dorm-toolbar">
+    <div><b>${state.cats.length} 位住客</b><span>${d.beds.length}/${d.rooms*G.Dormitory.roomCapacity} 张床已用</span></div>
+    ${btn(claim.text,'dorm-claim',{tone:1,cls:'compact dorm-claim',icon:15,disabled:claim.reward===0})}
+  </section>
+  <div class="dorm-tabs" role="group" aria-label="猫咪小屋视图">
+    ${['rooms','catalog'].map((id,i)=>btn(i?'名册':'宿舍','dorm-tab',{id,tone:id===rosterMode?1:2,pressed:id===rosterMode,cls:'compact'})).join('')}
+  </div>`;
+  return header('猫咪小屋','')+`<main class="scroll-content dorm-content">
+    <div class="dorm-page-content">${head}${rosterMode==='rooms'?
+      '<p class="dorm-hint">点房间安排入住，每只住客每 10 分钟攒 2 心得，最多累积 1 小时。</p>'+dormFloors():collection('detail')}</div>
+    </main>`+nav('home');
+}
+function dormRoomDetail(room) {
+  const residents=roomOccupants(room);
+  const vacant=G.Dormitory.roomCapacity-residents.length;
+  const people=residents.map(c=>`<div class="dorm-room-member">${dormCat(c)}${btn('换住客','dorm-picker',{
+    id:room+':'+c.id,tone:2,cls:'compact'})}</div>`).join('');
+  modal(roomName(room),`<p class="center">已入住 ${residents.length} 只 · 空床 ${vacant} 张</p>
+    <div class="dorm-modal-cats">${people}</div>${residents.length?'':'<p class="center small">这间还空着。</p>'}`,
+    vacant?btn('安排入住','dorm-picker',{id:room,tone:1}):btn('返回','modal-back',{tone:2}),8);
+  modalRoot.querySelector('.modal').classList.add('dorm-modal');
+}
+function dormPicker(room,swapId=null) {
+  const beds=new Map(state.dormitory.beds.map(b=>[b.id,b]));
+  const cats=state.cats.filter(c=>beds.get(c.id)?.room!==room&&(!swapId||beds.has(c.id)));
+  cats.sort((a,b)=>Number(beds.has(a.id))-Number(beds.has(b.id))||a.id-b.id);
+  const title=swapId?'与'+esc(cat(swapId).name)+'互换床位':'入住 '+roomName(room);
+  modal(title,`<div class="dorm-modal-cats">${cats.map(c=>dormCat(c,'dorm-move',
+    room+':'+c.id+(swapId?':'+swapId:''),beds.has(c.id)?roomName(beds.get(c.id).room):'待入住')).join('')}</div>
+    ${cats.length?'':'<p class="center small">暂时没有可选的伙伴。</p>'}`,btn('返回','modal-back',{tone:2}),8);
+  modalRoot.querySelector('.modal').classList.add('dorm-modal');
+}
+function dormDestination(id) {
+  const c=cat(id);
+  if(!c)return;
+  const d=state.dormitory, counts=Array(d.rooms).fill(0);
+  for(const b of d.beds)counts[b.room]++;
+  const choices=counts.map((n,i)=>btn(roomName(i)+' · 空 '+(G.Dormitory.roomCapacity-n),'dorm-move',{
+    id:i+':'+id,disabled:n>=G.Dormitory.roomCapacity,tone:2,cls:'compact'})).join('');
+  const full=counts.every(n=>n>=G.Dormitory.roomCapacity);
+  modal('给'+esc(c.name)+'找床位',full?'<p class="center">宿舍已住满，扩建后就有新床位。</p>':choices,
+    full?btn('看看扩建','dorm-build',{tone:1}):btn('返回','modal-back',{tone:2}),8);
+  modalRoot.querySelector('.modal').classList.add('dorm-modal');
+}
+function dormBuild() {
+  const cost=G.Dormitory.cost(state);
+  modal('扩建宿舍',`<p class="center">增加一间宿舍和 ${G.Dormitory.roomCapacity} 张床位。</p>
+    <p class="center">需要 ${resource(0,cost)} · 持有 ${resource(0,state.coins)}</p>`,
+    btn('确认扩建','dorm-build-confirm',{tone:1,disabled:state.coins<cost||state.dormitory.rooms>=G.Dormitory.maxRooms}),8);
+  modalRoot.querySelector('.modal').classList.add('dorm-modal');
+}
 let lastRenderedPage=null;
-function render(){const same=lastRenderedPage===page,scrollTop=same?($('.scroll-content')||$('.nursery-list'))?.scrollTop||0:0,opened=same?[...document.querySelectorAll('details[open][data-fold]')].map(el=>el.dataset.fold):[];game.className=(page==='home'?'':page==='battle'?'battle':'inner')+(page==='team'?' team-page':page==='growth'?' growth-page':page==='academy'?' academy-page':page==='book'?' book-page':page==='challenges'?' challenges-page':'')+(['breed','preview','birthing','reveal'].includes(page)?' nursery-room nursery-'+page:'');const views={home,breed:breeding,preview,birthing,reveal,team,battle:battlefield,book,family,roster,wishes,training,growth,academy,'long-goals':longGoals,challenges};screen.innerHTML=views[page]()+ (page==='team'?teamActions():'');for(const key of opened){const el=document.querySelector('details[data-fold="'+key+'"]');if(el)el.open=true;}const scrollEl=$('.scroll-content')||$('.nursery-list');if(scrollEl)scrollEl.scrollTop=scrollTop;if(page==='breed')refreshNurseryMaterials();lastRenderedPage=page;renderedView=viewState();syncGrowthReminder();cancelAnimationFrame(villageFrame);if(page==='home'){initVillage();animateVillage();}if(page==='reveal'&&(!same||newbornDraft?.id!==state.pendingReveal))newbornIntro();}
-function viewState(){return {page,filter,familyId,trainingId,growthId,browsingCats,growthGoalRoute,growthChoice,growthTab,academyFilter,lessonChoice,stage,battleMode,challengeId,rosterFilter,rosterSort,deployCatId,deployInspect,parentSlot};}
+function render(){const same=lastRenderedPage===page,scrollTop=same?($('.scroll-content')||$('.nursery-list'))?.scrollTop||0:0,opened=same?[...document.querySelectorAll('details[open][data-fold]')].map(el=>el.dataset.fold):[];game.className=(page==='home'?'':page==='battle'?'battle':'inner')+(page==='team'?' team-page':page==='growth'?' growth-page':page==='academy'?' academy-page':page==='book'?' book-page':page==='challenges'?' challenges-page':page==='roster'?' dorm-page':'')+(['breed','preview','birthing','reveal'].includes(page)?' nursery-room nursery-'+page:'');const views={home,breed:breeding,preview,birthing,reveal,team,battle:battlefield,book,family,roster,wishes,training,growth,academy,'long-goals':longGoals,challenges};screen.innerHTML=views[page]()+ (page==='team'?teamActions():'');for(const key of opened){const el=document.querySelector('details[data-fold="'+key+'"]');if(el)el.open=true;}const scrollEl=$('.scroll-content')||$('.nursery-list');if(scrollEl)scrollEl.scrollTop=scrollTop;if(page==='breed')refreshNurseryMaterials();lastRenderedPage=page;renderedView=viewState();syncGrowthReminder();cancelAnimationFrame(villageFrame);if(page==='home'){initVillage();animateVillage();}if(page==='reveal'&&(!same||newbornDraft?.id!==state.pendingReveal))newbornIntro();}
+function viewState(){return {page,filter,familyId,trainingId,growthId,browsingCats,growthGoalRoute,growthChoice,growthTab,academyFilter,lessonChoice,rosterMode,stage,battleMode,challengeId,rosterFilter,rosterSort,deployCatId,deployInspect,parentSlot};}
 function captureModal(){if(!modalView||!modalRoot.children.length)return null;return {...modalView,html:modalRoot.innerHTML,scroll:modalRoot.querySelector('.modal-scroll')?.scrollTop||0};}
 function navigationSnapshot(){const current=captureModal();return {...(renderedView||viewState()),scroll:($('.scroll-content')||$('.nursery-list'))?.scrollTop||0,opened:[...screen.querySelectorAll('details[open][data-fold]')].map(e=>e.dataset.fold),overlay:current&&!current.transient?{current,history:[...modalHistory]}:null};}
-function restoreView(v){if(!v)return;({filter=filter,familyId=familyId,trainingId=trainingId,growthId=growthId,browsingCats=browsingCats,growthGoalRoute=growthGoalRoute,growthChoice=growthChoice,growthTab=growthTab,academyFilter=academyFilter,lessonChoice=lessonChoice,stage=stage,battleMode=battleMode,challengeId=challengeId,rosterFilter=rosterFilter,rosterSort=rosterSort,deployCatId=deployCatId,deployInspect=deployInspect,parentSlot=parentSlot}=v);}
+function restoreView(v){if(!v)return;({filter=filter,familyId=familyId,trainingId=trainingId,growthId=growthId,browsingCats=browsingCats,growthGoalRoute=growthGoalRoute,growthChoice=growthChoice,growthTab=growthTab,academyFilter=academyFilter,lessonChoice=lessonChoice,rosterMode=rosterMode,stage=stage,battleMode=battleMode,challengeId=challengeId,rosterFilter=rosterFilter,rosterSort=rosterSort,deployCatId=deployCatId,deployInspect=deployInspect,parentSlot=parentSlot}=v);}
 function restoreModal(v){if(!v)return;restoringModal=true;try{if(v.replay)v.replay();else{modalView=v;modalRoot.innerHTML=v.html;}}finally{restoringModal=false;}const sc=modalRoot.querySelector('.modal-scroll');if(sc)sc.scrollTop=v.scroll||0;modalRoot.querySelector('.modal-back')?.focus({preventScroll:true});}
-function go(p,options={}){if(page==='battle'&&battle&&!battle.result&&p!=='battle'){exitNavigation={page:p,options};modal('离开本次试炼？','退出不会领取奖励，猫咪也不会受伤。',btn('继续挑战','modal-close')+btn('返回'+(PAGE_NAMES[p]||'猫村'),'battle-exit',{tone:2}));return;}if(p==='breed'&&state.pendingReveal)p='reveal';if(p==='home'||options.root)navHistory=p==='home'?[]:[{page:'home'}];else if(options.back)navHistory.pop();else if(['battle','birthing','reveal'].includes(page)&&navHistory.at(-1)?.page===p)navHistory.pop();else if(page!==p&&!['battle','birthing','reveal'].includes(page))navHistory.push(navigationSnapshot());clearTimeout(birthTimer);parentSlot=null;if(p==='growth'&&page!=='growth')growthChoice=null;closeModal(false);page=p;restoreView(options.restore);if(p==='preview'&&!state.objectives.preview){state.objectives.preview=true;if(!save())return;}render();if(options.restore){const el=$('.scroll-content')||$('.nursery-list');if(el)el.scrollTop=options.restore.scroll||0;for(const key of options.restore.opened||[]){const d=[...screen.querySelectorAll('details[data-fold]')].find(e=>e.dataset.fold===key);if(d)d.open=true;}if(options.restore.overlay){modalHistory=[...options.restore.overlay.history];restoreModal(options.restore.overlay.current);}}}
+function go(p,options={}){if(page==='battle'&&battle&&!battle.result&&p!=='battle'){exitNavigation={page:p,options};modal('离开本次试炼？','退出不会领取奖励，猫咪也不会受伤。',btn('继续挑战','modal-close')+btn('返回'+(PAGE_NAMES[p]||'猫村'),'battle-exit',{tone:2}));return;}if(p==='breed'&&state.pendingReveal)p='reveal';if(p==='home'||options.root)navHistory=p==='home'?[]:[{page:'home'}];else if(options.back)navHistory.pop();else if(['battle','birthing','reveal'].includes(page)&&navHistory.at(-1)?.page===p)navHistory.pop();else if(page!==p&&!['battle','birthing','reveal'].includes(page))navHistory.push(navigationSnapshot());clearTimeout(birthTimer);parentSlot=null;if(p==='growth'&&page!=='growth')growthChoice=null;closeModal(false);page=p;restoreView(options.restore);if(p==='roster'&&!state.dormitory){G.Dormitory.init(state);if(!save())return;}if(p==='preview'&&!state.objectives.preview){state.objectives.preview=true;if(!save())return;}render();if(options.restore){const el=$('.scroll-content')||$('.nursery-list');if(el)el.scrollTop=options.restore.scroll||0;for(const key of options.restore.opened||[]){const d=[...screen.querySelectorAll('details[data-fold]')].find(e=>e.dataset.fold===key);if(d)d.open=true;}if(options.restore.overlay){modalHistory=[...options.restore.overlay.history];restoreModal(options.restore.overlay.current);}}}
 function goBack(){if(modalRoot.children.length){modalBack();return;}if(page==='breed'&&parentSlot!==null){parentSlot=null;render();return;}if(['birthing','reveal'].includes(page)){finishReveal('breed',{root:true});return;}const previous=navHistory.at(-1)||{page:({preview:'breed',training:'academy',growth:'academy',battle:'team'})[page]||'home'};go(previous.page,{back:true,restore:previous});}
 function modalBack(){const previous=modalHistory.pop();if(previous){clearTimeout(levelTimer);restoreModal(previous);}else closeModal();}
 function modal(title,text,actions,artIcon=7){const route=modalRoute||{key:title},current=captureModal();if(!restoringModal){if(route.transient)modalHistory=[];else if(current&&current.key!==route.key){const ancestor=modalHistory.findIndex(v=>v.key===route.key);if(ancestor>=0)modalHistory=modalHistory.slice(0,ancestor);else modalHistory.push(current);}}modalView={...route,title};const backName=modalHistory.at(-1)?.title||PAGE_NAMES[page]||'猫村';if(!current)modalRoot._oldFocus=document.activeElement;modalRoot.innerHTML=`<div class="modal-shade"><section class="skin modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">${skin('panel',0)}<button class="modal-back" data-action="modal-back" aria-label="返回${esc(backName)}">${icon(13)}<span>返回${backName}</span></button><div class="modal-scroll">${icon(artIcon,'modal-icon')}<h2 id="modal-title">${title}</h2><div class="modal-body">${text}</div><div class="modal-footer">${actions||btn('知道啦','modal-close')}</div></div></section></div>`;modalRoot.querySelector('button')?.focus({preventScroll:true});}
@@ -697,6 +790,10 @@ comboDetail=bindModal(comboDetail,'comboDetail');
 help=bindModal(help,'help');
 resourceInfo=bindModal(resourceInfo,'resourceInfo');
 patrol=bindModal(patrol,'patrol');
+dormRoomDetail=bindModal(dormRoomDetail,'dormRoomDetail');
+dormPicker=bindModal(dormPicker,'dormPicker');
+dormDestination=bindModal(dormDestination,'dormDestination');
+dormBuild=bindModal(dormBuild,'dormBuild');
 battleUnitDetail=bindModal(battleUnitDetail,'battleUnitDetail');
 showGrowth=bindModal(showGrowth,'showGrowth',true);
 showWelcome=bindModal(showWelcome,'showWelcome',true);
@@ -713,6 +810,33 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  case 'objective-unpin':state.objectives.pinned=null;if(!save())return;render();break;
  case 'challenge-select':{const d=G.Objectives.challenges.find(x=>x.id===id);if(!d||!state.cleared.includes(d.level))break;challengeId=d.id;battleMode='challenge';stage=d.level;go('team');break;}
  case 'challenge-retry':battle=null;go('team');break;
+ case 'dorm-tab':if(['rooms','catalog'].includes(id)){rosterMode=id;render();$('.dorm-content').scrollTop=0;}break;
+ case 'dorm-room':dormRoomDetail(Number(id));break;
+ case 'dorm-picker':{const [room,swapId]=id.split(':').map(Number);dormPicker(room,swapId);break;}
+ case 'dorm-destination':dormDestination(Number(id));break;
+ case 'dorm-move':{
+   const [room,catId,swapId]=id.split(':').map(Number);
+   if(swapId)G.Dormitory.swap(state,catId,swapId);
+   else G.Dormitory.assign(state,catId,room);
+   if(!save())return;
+   closeModal(false);render();dormRoomDetail(room);
+   break;
+ }
+ case 'dorm-build':dormBuild();break;
+ case 'dorm-build-confirm':{
+   const room=G.Dormitory.expand(state);
+   if(!save())return;
+   closeModal(false);rosterMode='rooms';render();
+   screen.querySelector('.dorm-room-label[data-id="'+room+'"]')?.scrollIntoView({block:'nearest'});
+   toast('新宿舍建好了 · +4 张床');
+   break;
+ }
+ case 'dorm-claim':{
+   const amount=G.Dormitory.claim(state);
+   if(!amount||!save())return;
+   render();toast('收下 '+amount+' 心得');
+   break;
+ }
  case 'cat-filter':rosterFilter=id;render();break;
  case 'cat-sort':rosterSort=id;render();break;
  case 'cat-clear':rosterFilter='all';rosterSort='recent';render();break;
@@ -899,9 +1023,18 @@ document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.tar
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(levelTimer);else if(levelShowing)showGrowth();});
 window.addEventListener('storage',e=>{if(e.key===STORE)MeowSave.exclusive(()=>syncSave());});
 window.addEventListener('focus',()=>MeowSave.exclusive(()=>syncSave()));
-const assets=['v155-leaf-box','v155-dew-box','v141-skill-icons','v141-range-tiles','v12-mutants-a','v12-mutants-b','v9-walk-pointed','v9-walk-round','v9-walk-rare','v8-nursery-room','v8-square-back','v8-welcome','v7-hearts-teams','v7-skills-growth','v6-rare-cats-clean','v6-panel-thin','v6-resources','v6-battle-tiles','v4-ground','v4-foreground-tree','v3-map-village','v2-map-home','v2-map-battle','v2-cats','v2-cats-round','v2-panels','v2-buttons','v2-icons'];
+setInterval(()=>{
+  const button=page==='roster'&&screen.querySelector('.dorm-claim');
+  if(!button)return;
+  const claim=dormClaimLabel();
+  button.disabled=claim.reward===0;
+  button.lastElementChild.textContent=claim.text;
+  button.querySelector('.paper-skin')?.classList.toggle('tone-4',claim.reward===0);
+  button.querySelector('.paper-skin')?.classList.toggle('tone-1',claim.reward>0);
+},15000);
+const assets=['v157-dorm-atlas','v155-leaf-box','v155-dew-box','v141-skill-icons','v141-range-tiles','v12-mutants-a','v12-mutants-b','v9-walk-pointed','v9-walk-round','v9-walk-rare','v8-nursery-room','v8-square-back','v8-welcome','v7-hearts-teams','v7-skills-growth','v6-rare-cats-clean','v6-panel-thin','v6-resources','v6-battle-tiles','v4-ground','v4-foreground-tree','v3-map-village','v2-map-home','v2-map-battle','v2-cats','v2-cats-round','v2-panels','v2-buttons','v2-icons'];
 let imagesReady=0;const loadedImage=ok=>{imagesReady++;const label=document.querySelector('#loading p');if(label)label.textContent='小院正在醒来…… '+Math.round(imagesReady/assets.length*100)+'%';return ok;};
 Promise.all(assets.map(n=>new Promise(resolve=>{const i=new Image();i.onload=()=>i.decode().catch(()=>{}).then(()=>resolve(loadedImage(true)));i.onerror=()=>resolve(loadedImage(false));i.src=ASSET(n);}))).then(results=>{render();$('#loading').remove();if(results.some(x=>!x))modal('有几张画还没送到','网络有些慢，部分画面还未加载完成。请重新载入。',btn('重新载入','reload'));if(!state.pendingReveal&&(state.pendingWelcomes.length||state.pendingGrowth.length))showNextCelebration();if(loadNotice)toast(loadNotice);});
 document.addEventListener('click',e=>{if(e.target.closest('[data-action="reload"]'))location.reload();const el=e.target.closest('summary,button');if(el&&!el.disabled&&!el.closest('[data-action]')&&!e.defaultPrevented)MeowSound.play('tap');});
-window.MeowDemo={build:'15.6-newborn-reveal',getWelcomeShowing:()=>welcomeShowing,getGrowthShowing:()=>levelShowing,getBattlePhase:()=>battleCue?.phase||null,getCamera:()=>({...camera}),getVillageScene:()=>({time:villageTime,tree:{...TREE},gate:VillageMotion.gate,cats:[...document.querySelectorAll('.village-cat')].map(el=>({id:Number(el.dataset.id),x:parseFloat(el.style.left),y:parseFloat(el.style.top),depth:Number(el.style.zIndex),moving:el.dataset.moving,frame:Number(el.dataset.frame)}))}),getState:()=>JSON.parse(JSON.stringify(state)),getPage:()=>page,getBattle:()=>battle?JSON.parse(JSON.stringify(battle)):null};
+window.MeowDemo={build:'15.7-cat-dormitory',getWelcomeShowing:()=>welcomeShowing,getGrowthShowing:()=>levelShowing,getBattlePhase:()=>battleCue?.phase||null,getCamera:()=>({...camera}),getVillageScene:()=>({time:villageTime,tree:{...TREE},gate:VillageMotion.gate,cats:[...document.querySelectorAll('.village-cat')].map(el=>({id:Number(el.dataset.id),x:parseFloat(el.style.left),y:parseFloat(el.style.top),depth:Number(el.style.zIndex),moving:el.dataset.moving,frame:Number(el.dataset.frame)}))}),getState:()=>JSON.parse(JSON.stringify(state)),getPage:()=>page,getBattle:()=>battle?JSON.parse(JSON.stringify(battle)):null};
 })();
